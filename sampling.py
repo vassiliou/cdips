@@ -61,7 +61,13 @@ class image_pair(object):
         self.mask = io.imread(os.path.join(trainfolder, maskfile))   
         self.dims = self.image.shape
         try: 
-            self.contour = measure.find_contours(self.mask, 254.5)[0]
+            contours = measure.find_contours(self.mask, 254.5)
+            if len(contours)>1:
+                ic = np.argmax([contour.shape[0] for contour in contours])
+                contour = contours[ic]
+            else:
+                contour = contours[0]
+            self.contour = contour
         except:
             self.contour=np.empty((1,2))
         
@@ -104,6 +110,8 @@ class image_pair(object):
         #print type(tuple(contour[0])[0])
         negative = [c for c in coords if c not in contour_pixels ]
         return np.array(negative)
+        
+
 
 def build_data(num_images,P,F):
     data ={}
