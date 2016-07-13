@@ -1,3 +1,5 @@
+from __future__ import (absolute_import, division,
+                        print_function, unicode_literals)
 import skimage
 from skimage import io
 from skimage import feature,measure
@@ -8,14 +10,28 @@ import glob
 import pandas as pd
 import numpy as np
 
-trainfolder="/Users/gus/CDIPS/nerve-project/train/"
-datafolder="/Users/gus/CDIPS/nerve-project/"
+from builtins import (
+    bytes, dict, int, list, object, range, str,
+    ascii, chr, hex, input, next, oct, open,
+    pow, round, super,
+    filter, map, zip)
+
+
+#trainfolder = "/Users/gus/CDIPS/nerve-project/train/"
+datafolder = "/Users/gus/CDIPS/nerve-project/"
+
+if os.environ['USER'] == 'chrisv':
+    datafolder = '../'
+
+trainfolder = os.path.join(datafolder, 'train')
+testfolder = os.path.join(datafolder, 'test')
+
 trainimages = glob.glob(os.path.join(trainfolder, '*.tif'))
 
 training = pd.read_csv(os.path.join(datafolder,'train_masks.csv'))
-all_training =training[['subject','img']]
-non_empty=training[ ~pd.isnull(training.pixels)][['subject','img']]
-empty=training[ pd.isnull(training.pixels)][['subject','img']]
+all_training = training[['subject','img']]
+non_empty = training[ ~pd.isnull(training.pixels)][['subject','img']]
+empty = training[ pd.isnull(training.pixels)][['subject','img']]
 
 def load_image(idx, training):
     nameformat = '{subject}_{img}.tif'
@@ -68,7 +84,7 @@ class image_pair(object):
         ## this might return < P samples..
         contour= self.contour.astype(int)
         l = contour.shape[0]
-        contour_pixels = set([ tuple(contour[i]) for i in xrange(l)])
+        contour_pixels = set([ tuple(contour[i]) for i in range(l)])
         x_coords=np.random.randint(F,self.dims[0]-F,size=P)
         y_coords=np.random.randint(F,self.dims[1]-F,size=P)
         coords=zip(x_coords,y_coords)
