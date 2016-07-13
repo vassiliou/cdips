@@ -65,10 +65,11 @@ class image_pair(object):
         except:
             self.contour=np.empty((1,2))
         
-    def plot(self,figure_size=(6,4)):
+    def plot(self, ax=None, figure_size=(6,4)):
         title = '{subject}_{img}.tif'
         title=title.format(subject=self.subject,img=self.img_number)
-        fig, ax = plt.subplots(figsize=figure_size)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figure_size)
         ax.imshow(self.image, cmap=plt.cm.gray)
         maskcontour = [self.contour]
         if not maskcontour==[]:
@@ -79,7 +80,18 @@ class image_pair(object):
         ax.set_aspect('equal')
         ax.autoscale(tight=True)
         return ax
-   
+    
+    def plotmask(self, ax=None, figure_size=(6,4)):
+        title = '{subject}_{img}.tif'.format(subject=self.subject,
+                                             img=self.img_number)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figure_size)
+        ax.imshow(self.mask, cmap=plt.cm.gray)
+        ax.set_title(title)
+        ax.set_aspect('equal')
+        ax.autoscale(tight=True)
+        return ax
+        
     def sample_contour_negative(self,P,F=17) :
         ## this might return < P samples..
         contour= self.contour.astype(int)
