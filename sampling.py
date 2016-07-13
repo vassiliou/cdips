@@ -68,8 +68,10 @@ class image_pair(object):
             else:
                 contour = contours[0]
             self.contour = contour
+            self.contours = contours
         except:
-            self.contour=np.empty((1,2))
+            self.contour = np.empty((1,2))
+            self.contours = [] 
         
     def plot(self, ax=None, figure_size=(6,4)):
         title = '{subject}_{img}.tif'
