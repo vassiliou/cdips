@@ -154,3 +154,48 @@ def sample_negatives_from_image(P,F,image_pair,data):
     for sample_num, pixel in enumerate(sample_pixels):
         patch = get_patch(mask,pixel,F)
         write_patch(patch,pixel,data,image_pair.subject,image_pair.img_number,sample_num,negative=True)
+
+def plot_grid(imageset, ncols=5, plotimage=True, plotcontour=True, plotpred=False, figwidth=16):
+    """Plot a grid of images, optionally overlaying contours and predicted contours
+        Assumes the input is a Pandas DataFrame as in training.bin    
+    """    
+    nrows = nrows=int(np.ceil(len(imageset)/ncols))
+    figheight = figwidth/ncols*nrows
+    fig, ax = plt.subplots(ncols=ncols, nrows=nrows,
+                           figsize=(figwidth,figheight))
+    ax = ax.flatten()
+    for i,row in enumerate(imageset.iterrows()):
+        
+        imagefile = '{subject}_{img}.tif'.format(subject=row[1]['subject'],
+                                                 img=row[1]['img']) 
+        if plotimage:
+            image = io.imread(os.path.join(trainfolder, imagefile))
+            ax[i].imshow(image, cmap=plt.cm.gray)
+        if plotcontour:
+            C = row[1]['maskContour']
+            ax[i].plot(C[:,1],C[:,0])
+        if plotpred:
+            P = row[1]['maskPrediction']
+            ax[i].plot(P[:,1],P[:,0])            
+        ax[i].tick_params(which='both', axis='both', 
+                          bottom=False, top=False, left=False, right=False,
+                          labelbottom=False, labeltop=False, labelleft=False, labelright=False)
+        ax[i].set_aspect('equal')
+        ax[i].autoscale(tight=True)
+        ax[i].set_title(imagefile)
+    return fig
+
+     
+def plot_hist(imageset, ax=None):
+    """Plot histograms of a set of images
+        Assumes the input is a Pandas DataFrame as in training.bin    
+    """    
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(12,8))
+    for i,row in enumerate(imageset.iterrows()):
+        
+        imagefile = '{subject}_{img}.tif'.format(subject=row[1]['subject'],
+                                                 img=row[1]['img']) 
+        image = io.imread(os.path.join(trainfolder, imagefile))
+        ax.hist(image.flatten(), bins=100, histtype='step', label=imagefile)
+    return ax
