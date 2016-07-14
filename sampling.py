@@ -197,5 +197,29 @@ def plot_hist(imageset, ax=None):
         imagefile = '{subject}_{img}.tif'.format(subject=row[1]['subject'],
                                                  img=row[1]['img']) 
         image = io.imread(os.path.join(trainfolder, imagefile))
-        ax.hist(image.flatten(), bins=100, histtype='step', label=imagefile)
+        ax.hist(image.flatten(), cumulative=True, normed=True,
+                bins=100, histtype='step', label=imagefile, alpha=0.1, color='k')
     return ax
+
+def load_series(imageset):
+    """ Load a series of images and return as a 3-D numpy array.
+    imageset consists of rows from training.bin"""
+    rows = imageset.iterrows()
+    row = next(rows)
+    image = loadsingle(row[1])
+    images = np.empty((image.shape[0],image.shape[1],len(imageset)))
+    images[:,:,0] = image
+    for idx, row in enumerate(rows,1):
+        images[:,:,idx] = loadsingle(row[1])
+
+    return images
+
+
+def loadsingle(row):
+    """ Load a single file from one row in training.bin """
+    return io.imread(os.path.join(trainfolder, imagefile(row)))
+
+def imagefile(row):
+    """ Return the image file from a row in training.bin"""
+    return '{subject}_{img}.tif'.format(subject=row['subject'],
+                                        img=row['img'])
