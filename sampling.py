@@ -223,3 +223,16 @@ def imagefile(row):
     """ Return the image file from a row in training.bin"""
     return '{subject}_{img}.tif'.format(subject=row['subject'],
                                         img=row['img'])
+                                        
+def plot_contour(row, ax=None, XY=False):
+    C = row['maskContour']
+    x = C[:,1]
+    y = C[:,0]
+    if ax is None:
+        fig, ax = plt.subplots()
+    if XY:
+        ax.plot(x)
+        ax.plot(y)
+    else:
+        ax.plot(x,y)
+        ax.axis('equal')
