@@ -236,3 +236,11 @@ def plot_contour(row, ax=None, XY=False):
     else:
         ax.plot(x,y)
         ax.axis('equal')
+
+def plot_pca_comps(P, ncomp, *args, **kwargs):
+    comps = np.arange(ncomp)
+    fig, ax = plt.subplots(ncomp-1,ncomp-1,figsize=(12,8))
+    for xcomp, row in enumerate(ax):
+        ycomp = np.delete(comps,xcomp)
+        for j, axs in enumerate(row):
+            axs.scatter(P[:,xcomp], P[:,ycomp[j]], *args, **kwargs)
