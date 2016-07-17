@@ -107,6 +107,7 @@ class mask(image):
 
         return ax
         
+    
 class image_pair(object):
     def __init__(self, row, figsize=(6,4)):
         self.image = image(row, figsize)
@@ -151,11 +152,11 @@ class batch(object):
         for idx, imgpair in enumerate(self.batch):
             
             if plotimage:
-                imgpair.image.plot(ax=ax[i])
+                imgpair.image.plot(ax=ax[idx])
             if plotcontour:
-                imgpair.mask.plot_contour('-b', ax=ax[i])
+                imgpair.mask.plot_contour('-b', ax=ax[idx])
             if plotpred:
-                imgpair.pred.plot_contour('-r', ax=ax[i])
+                imgpair.pred.plot_contour('-r', ax=ax[idx])
 
         return fig
     
@@ -168,7 +169,7 @@ class batch(object):
             fig, ax = plt.subplots(figsize=(12,8))
         for imgpair in self.batch:
             ax.hist(imgpair.image.flatten(), cumulative=True, normed=True,
-                    bins=100, histtype='step', label=imagefile, alpha=0.1, color='k')
+                    bins=100, histtype='step', label=imgpair.image.filename, alpha=0.1, color='k')
         return ax
     
     def scores(self):
