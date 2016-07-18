@@ -3,7 +3,7 @@ from skimage import measure
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 import matplotlib.pyplot as plt
-from matplotlib import colors
+
 import os
 #import glob
 import pandas as pd
@@ -212,6 +212,7 @@ class batch(list):
         return scores
 
 if __name__ == '__main__':
+        
     # Load image pair from training table
     img = image_pair(training.iloc[0])
 
@@ -234,3 +235,22 @@ if __name__ == '__main__':
     
     # histograms of batch of images?
     imgbatch.plot_hist()
+    
+    # Use batch.pop() to process images sequentially
+    
+#    import psutil
+#    process = psutil.Process(os.getpid())
+#    # Memory usage
+#    newbatch=[]
+#    mem = process.memory_info().rss
+#    newbatch = batch(training.iloc[10:16])
+#    print('Batch of 6: {:d}'.format(process.memory_info().rss-mem))
+#    newbatch.array
+#    print('Batch of 6 with images: {:d}'.format(process.memory_info().rss-mem))
+#    newbatch = batch(training.iloc[10:50])
+#    A = newbatch.pop().image.image  
+#    for i in range(len(newbatch)):
+#        A = A + newbatch.pop().image.image
+#        print('{:d}, images: {:d}'.format(i,process.memory_info().rss-mem))
+    
+        
