@@ -231,7 +231,22 @@ class batch(list):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
         return np.array([im.image.image for im in self])
-
+    
+    def array_masks(self):
+        """Load masks from the batch into a 3-D ndarray"""
+        entries=[]
+        for impair in self:
+            raw_mask=impair.mask.load()
+            toAdd=np.zeros([420,580,2])
+            toAdd[:,:,0]=(raw_mask==0).astype(int)
+            toAdd[:,:,1]=(raw_mask==255).astype(int)
+            entries.append(toAdd)
+        return np.array(entries)
+    
+    def array_rgb(self):
+        """ Load a series of images and return as a 3-D numpy array.
+        imageset consists of rows from training.bin"""
+        return np.array([im.image.load_rgb() for im in self])
    
     def plot_grid(self, ncols=5, plotimage=True, plotcontour=True, plotpred=False, figwidth=16):
         """Plot a grid of images, optionally overlaying contours and predicted contours
