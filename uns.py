@@ -46,6 +46,10 @@ class image():
         """ Load image file """
         return io.imread(os.path.join(trainfolder, self.filename))
 
+    def load_rgb(self):
+        grayscale = self.load()
+        return np.dstack((grayscale,grayscale,grayscale))
+    
     def plot(self, ax=None, **plotargs):
         if ax is None:
             fig, ax = plt.subplots()
