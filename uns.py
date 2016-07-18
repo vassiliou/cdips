@@ -1,5 +1,7 @@
 from skimage import io
 from skimage import measure
+from skimage import morphology
+
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 import matplotlib.pyplot as plt
@@ -39,17 +41,6 @@ class image():
     def __repr__(self):
         return self.info.__repr__()
     
-    def __add__(self, image2):
-        if type(image2) is np.ndarray:
-            return self.image + image2
-        else:
-            return self.image + image2.image
-    
-    def __int__(self):
-        return self.image
-    
-    def __sub__(self, image2):
-        return self.image + image2.image
     
     def load(self):
         """ Load image file """
@@ -62,6 +53,7 @@ class image():
         ax.imshow(self.image, **plotargs)
         ax.set_title(self.title)
         ax.axis('equal')
+        ax.axis('off')     
         ax.tick_params(which='both', axis='both', 
                           bottom=False, top=False, left=False, right=False,
                           labelbottom=False, labeltop=False, labelleft=False, labelright=False)
@@ -88,6 +80,9 @@ class mask(image):
         self._contour = None
         self.contourlength = 40
         self.filename = self.title + '_mask.tif'
+        self._properties = None
+        self.hasmask = False
+        
     @property
     def contour(self):
         if self._contour is None: 
@@ -100,22 +95,83 @@ class mask(image):
                 ius1 = InterpolatedUnivariateSpline(T_orig, contour[:,1])
                 T_new = np.linspace(0, 1, self.contourlength)
                 self._contour = np.vstack((ius0(T_new), ius1(T_new)))
-                self._hascontour = True
+                self.hasmask = True
             else:
-                self._hascontour = False
+                self.hasmask = False
         return self._contour
     
     @contour.setter
     def contour(self, contour):
         self._contour = contour
+        
+
+    @property
+    def properties(self):
+        if self._properties is None:
+            C = self.contour
+            if self.hasmask:
+                x, y = C
+                m = measure.moments(self.image)
+                c = np.mean(self.contour, axis=1)
+                D = {}
+                D['npixels'] = np.count_nonzero(self.image) 
+                # Contour-derived values
+                D['xmin'] = np.min(x)
+                D['xmax'] = np.max(x)
+                D['ymin'] = np.min(y)
+                D['ymax'] = np.max(y)
     
+                D['W'] = D['xmax'] - D['xmin']     
+                D['H'] = D['ymax'] - D['ymin']
+                
+                # Image moments
+                D['moments'] = m
+                D['Cr'] = m[0, 1]/m[0, 0] 
+                D['Cc'] = m[1, 0]/m[0, 0]
+    
+                # Contour SVD
+                _, s, v = np.linalg.svd(self.contour.T - c)
+                D['S0'] = s[0]
+                D['S1'] = s[1]
+                D['V0'] = v[:,0]        
+                D['V1'] = v[:,1]
+                
+                # Width by medial axis
+                skel, distance = morphology.medial_axis(self.image,
+                                                        self.image,
+                                                        return_distance=True)
+                self.skel = skel
+                self.distance = distance
+                D['lenskel'] = np.sum(skel)
+                distances = distance[self.image>0] # pick distance within mask
+                D['meandist'] = np.mean(distances)
+                D['maxdist'] = np.max(distances)
+                D['medidist'] = np.median(distances)
+                self._properties = D
+        return self._properties
+
+    @property
+    def pandas(self):                
+        df = self.info[['subject','img','pixels']]
+        props = self.properties        
+        if props is not None:
+            for k, v in props.items():
+                df.loc[k] = v
+        return df
+        
     @property
     def RLE(self):
-        pass
+        """Convert mask to run length encoded format"""
+        dm = np.diff(self.image.T.flatten().astype('int16'))
+        start = np.nonzero(dm>0)[0]
+        stop = np.nonzero(dm<0)[0]
+        RLE = np.vstack((start+2, stop-start))
+        return ' '.join(str(n) for n in RLE.flatten(order='F'))
+        
     
     def plot_contour(self, *args, **kwargs):
         C = self.contour      
-        if self._hascontour:
+        if self.hasmask:
             x = C[1,:]
             y = C[0,:]
             ax = kwargs.pop('ax', None)
@@ -235,7 +291,10 @@ if __name__ == '__main__':
     
     # histograms of batch of images?
     imgbatch.plot_hist()
+    plt.show()
     
+    print(img.mask.properties)
+    print(img.mask.pandas)
     # Use batch.pop() to process images sequentially
     
 #    import psutil
@@ -244,13 +303,20 @@ if __name__ == '__main__':
 #    newbatch=[]
 #    mem = process.memory_info().rss
 #    newbatch = batch(training.iloc[10:16])
-#    print('Batch of 6: {:d}'.format(process.memory_info().rss-mem))
+#    print('Batch of 6: {:d}'.format(process.memory_info().rss))
 #    newbatch.array
-#    print('Batch of 6 with images: {:d}'.format(process.memory_info().rss-mem))
-#    newbatch = batch(training.iloc[10:50])
-#    A = newbatch.pop().image.image  
+#    print('Batch of 6 with images: {:d}'.format(process.memory_info().rss))
+#    mem = process.memory_info().rss
+#    newbatch = batch(training.iloc[0:50])
+#    A = newbatch.pop().image.image
 #    for i in range(len(newbatch)):
 #        A = A + newbatch.pop().image.image
-#        print('{:d}, images: {:d}'.format(i,process.memory_info().rss-mem))
-    
-        
+#        if i%10 == 0:
+#            print('{:d}, images: {:d}'.format(i,process.memory_info().rss))
+#    savebatch = batch(training.iloc[0:50])
+#    for i, img in enumerate(savebatch):
+#        data = img.image.image        
+#        if i%10 == 0:
+#            print('{:d}, images: {:d}'.format(i,process.memory_info().rss))
+#    
+#    print(len(newbatch), len(savebatch))
