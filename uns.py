@@ -116,30 +116,32 @@ class mask(image):
         
         # Don't overemphasize one dimension over the other by setting the max
         # dimenstion to equal 1
-        imgL = np.max(imgH, imgW)
+        imgL = np.max([imgH, imgW])
         imgA = imgH * imgW  # Total number of pixels
         if self._properties is None:
-            C = self.contour
+            # Must load contour into single variable before checking self.hasmask
+            # If mask exists, only then can we access x,y components of contour
+            C = self.contour  
             if self.hasmask:
+                D = {}                
                 D['hasmask'] = True
-                x, y = C
-                m = measure.moments(self.image)
-                c = np.mean(self.contour, axis=1)
-                D = {}
+
                 
                 # Area metric is normalize to number of image pixels.  Sqrt 
                 # converts units to distance
                 D['maskarea'] = np.sqrt(np.count_nonzero(self.image)/imgA)
                 # Contour-derived values
+                x, y = C
                 D['contxmin'] = np.min(x)/imgL
                 D['contxmax'] = np.max(x)/imgL
                 D['contymin'] = np.min(y)/imgL
                 D['contymax'] = np.max(y)/imgL
     
-                D['contW'] = D['xmax'] - D['xmin']     
-                D['contH'] = D['ymax'] - D['ymin']
+                D['contW'] = D['contxmax'] - D['contxmin']     
+                D['contH'] = D['contymax'] - D['contymin']
                 
                 # Image moments
+                m = measure.moments(self.image)
                 D['moments'] = m
                 D['centrow'] = (m[0, 1]/m[0, 0])/imgL
                 D['centcol'] = (m[1, 0]/m[0, 0])/imgL
@@ -148,16 +150,16 @@ class mask(image):
                 # First normalize and centre the contours
                 D['contour'] = self.contour
                 
-                contour = (self.contour.T - [D['Cr'], D['Cc']]) / [imgL, imgL]
+                contour = (self.contour.T - [D['centrow'], D['centcol']]) / [imgL, imgL]
                 D['unitcontour'] = contour
 
                 _, s, v = np.linalg.svd(contour)
 
                 D['svd'] = s*v                
-                D['svdx0'] = D['SVD'][0,0] 
-                D['svdx1'] = D['SVD'][0,1]
-                D['svdy0'] = D['SVD'][1,0]
-                D['svdy1'] = D['SVD'][1,1]              
+                D['svdx0'] = D['svd'][0,0] 
+                D['svdx1'] = D['svd'][0,1]
+                D['svdy0'] = D['svd'][1,0]
+                D['svdy1'] = D['svd'][1,1]              
                 
                 # Width by medial axis
                 skel, distance = morphology.medial_axis(self.image,
@@ -342,6 +344,11 @@ if __name__ == '__main__':
     
     print(img.mask.properties)
     print(img.mask.pandas)
+    
+    # Check that properties are called/set correctly
+    img = image_pair(training.iloc[1])
+    print(img.mask.pandas)    
+    
     # Use batch.pop() to process images sequentially
     
 #    import psutil
