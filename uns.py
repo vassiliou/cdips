@@ -111,34 +111,53 @@ class mask(image):
 
     @property
     def properties(self):
+        """Return a set of metrics on the masks with units of distance """
+        imgH, imgW = self.image.shape  # Image height, width
+        
+        # Don't overemphasize one dimension over the other by setting the max
+        # dimenstion to equal 1
+        imgL = np.max(imgH, imgW)
+        imgA = imgH * imgW  # Total number of pixels
         if self._properties is None:
             C = self.contour
             if self.hasmask:
+                D['hasmask'] = True
                 x, y = C
                 m = measure.moments(self.image)
                 c = np.mean(self.contour, axis=1)
                 D = {}
-                D['npixels'] = np.count_nonzero(self.image) 
+                
+                # Area metric is normalize to number of image pixels.  Sqrt 
+                # converts units to distance
+                D['maskarea'] = np.sqrt(np.count_nonzero(self.image)/imgA)
                 # Contour-derived values
-                D['xmin'] = np.min(x)
-                D['xmax'] = np.max(x)
-                D['ymin'] = np.min(y)
-                D['ymax'] = np.max(y)
+                D['contxmin'] = np.min(x)/imgL
+                D['contxmax'] = np.max(x)/imgL
+                D['contymin'] = np.min(y)/imgL
+                D['contymax'] = np.max(y)/imgL
     
-                D['W'] = D['xmax'] - D['xmin']     
-                D['H'] = D['ymax'] - D['ymin']
+                D['contW'] = D['xmax'] - D['xmin']     
+                D['contH'] = D['ymax'] - D['ymin']
                 
                 # Image moments
                 D['moments'] = m
-                D['Cr'] = m[0, 1]/m[0, 0] 
-                D['Cc'] = m[1, 0]/m[0, 0]
+                D['centrow'] = (m[0, 1]/m[0, 0])/imgL
+                D['centcol'] = (m[1, 0]/m[0, 0])/imgL
     
-                # Contour SVD
-                _, s, v = np.linalg.svd(self.contour.T - c)
-                D['S0'] = s[0]
-                D['S1'] = s[1]
-                D['V0'] = v[:,0]        
-                D['V1'] = v[:,1]
+                # Contour SVD is converted to two coordinates
+                # First normalize and centre the contours
+                D['contour'] = self.contour
+                
+                contour = (self.contour.T - [D['Cr'], D['Cc']]) / [imgL, imgL]
+                D['unitcontour'] = contour
+
+                _, s, v = np.linalg.svd(contour)
+
+                D['svd'] = s*v                
+                D['svdx0'] = D['SVD'][0,0] 
+                D['svdx1'] = D['SVD'][0,1]
+                D['svdy0'] = D['SVD'][1,0]
+                D['svdy1'] = D['SVD'][1,1]              
                 
                 # Width by medial axis
                 skel, distance = morphology.medial_axis(self.image,
@@ -146,11 +165,20 @@ class mask(image):
                                                         return_distance=True)
                 self.skel = skel
                 self.distance = distance
-                D['lenskel'] = np.sum(skel)
-                distances = distance[self.image>0] # pick distance within mask
-                D['meandist'] = np.mean(distances)
-                D['maxdist'] = np.max(distances)
-                D['medidist'] = np.median(distances)
+                
+                # 
+                D['skelpixels'] = np.sqrt((np.sum(skel)/imgA))  # number of pixels
+                
+                # distances should be restricted to within mask to avoid over-
+                # counting the zeros outside the mask                
+                distances = distance[self.image>0]/imgL
+                q = [0.1, 0.25, 0.5, 0.75, 0.9] 
+                keys = ['skeldist{:2d}'.format(int(n*100)) for n in q]
+                vals = np.percentile(distances, q)
+                D.update(dict(zip(keys, vals)))
+                D['skelavgdist'] = np.mean(distances)
+                D['skelmaxdist'] = np.max(distances)
+                
                 self._properties = D
         return self._properties
 
