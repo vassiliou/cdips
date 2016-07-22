@@ -150,7 +150,7 @@ class mask(image):
                 # First normalize and centre the contours
                 D['contour'] = self.contour
                 
-                contour = (self.contour.T - [D['centrow'], D['centcol']]) / [imgL, imgL]
+                contour = (self.contour.T / [imgL, imgL] - [D['centrow'], D['centcol']]) 
                 D['unitcontour'] = contour
 
                 _, s, v = np.linalg.svd(contour)
