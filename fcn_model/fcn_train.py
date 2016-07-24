@@ -10,8 +10,8 @@ import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-import mnist_model as model 
-import mnist_input as inpt
+from . import fcn_model as model 
+from . import fcn_input as inpt
 
 FLAGS = tf.app.flags.FLAGS
 

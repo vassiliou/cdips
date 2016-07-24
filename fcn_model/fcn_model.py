@@ -3,12 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import os
-import re
-import sys
-import fcn_input
-import fcn16_vgg
-from fcn16_vgg import FCN16VGG
+from . import fcn_input
+from . import fcn16_vgg
+from .fcn16_vgg import FCN16VGG
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -20,10 +17,10 @@ tf.app.flags.DEFINE_string('data_dir', '/Users/gus/CDIPS/uns/fcn_model/data',
 tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
 
 # Global constants describing the MNIST data set.
-IMAGE_SIZE = mnist_input.IMAGE_SIZE
-NUM_CLASSES = mnist_input.NUM_CLASSES
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = mnist_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = mnist_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+IMAGE_SIZE = fcn_input.IMAGE_SIZE
+NUM_CLASSES = fcn_input.NUM_CLASSES
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = fcn_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
+NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = fcn_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
@@ -118,7 +115,7 @@ def inputs():
     if not FLAGS.data_dir:
           raise ValueError('Please supply a data_dir')
     data_dir = FLAGS.data_dir
-    return mnist_input.inputs(data_dir=data_dir,
+    return fcn_input.inputs(data_dir=data_dir,
                                         batch_size=FLAGS.batch_size)
 
 
@@ -146,7 +143,7 @@ def inference(image_batch):
   with tf.name_scope('vgg_net') as scope:
     net.build(inputs,train=False,num_classes=2,random_init_fc8=True)
   
-  return self.upscore32
+  return net.upscore32
 
 
 def loss(logits, labels, num_classes):
