@@ -141,19 +141,24 @@ class mask(image):
                 D['contH'] = D['contymax'] - D['contymin']
                 
                 # Image moments
-                m = measure.moments(self.image)
+                m = measure.moments(self.image, order=5)
                 D['moments'] = m
                 D['centrow'] = (m[0, 1]/m[0, 0])/imgL
                 D['centcol'] = (m[1, 0]/m[0, 0])/imgL
-    
+                
+                # Hu, scale, location, rotation invariant (7, 1)
+                mHu = measure.moments_hu(m)    
+                for i, Ii in enumerate(mHu):
+                    D['moment_hu_I{}'.format(i)] = Ii
+                    
                 # Contour SVD is converted to two coordinates
                 # First normalize and centre the contours
                 D['contour'] = self.contour
                 
-                contour = (self.contour.T / [imgL, imgL] - [D['centrow'], D['centcol']]) 
+                contour = (self.contour.T/imgL - [D['centrow'], D['centcol']]).T 
                 D['unitcontour'] = contour
 
-                _, s, v = np.linalg.svd(contour)
+                _, s, v = np.linalg.svd(contour.T)
 
                 D['svd'] = s*v                
                 D['svdx0'] = D['svd'][0,0] 
@@ -174,8 +179,8 @@ class mask(image):
                 # distances should be restricted to within mask to avoid over-
                 # counting the zeros outside the mask                
                 distances = distance[self.image>0]/imgL
-                q = [0.1, 0.25, 0.5, 0.75, 0.9] 
-                keys = ['skeldist{:2d}'.format(int(n*100)) for n in q]
+                q = [10, 25, 50, 75, 90] 
+                keys = ['skeldist{:2d}'.format(n) for n in q]
                 vals = np.percentile(distances, q)
                 D.update(dict(zip(keys, vals)))
                 D['skelavgdist'] = np.mean(distances)
@@ -187,6 +192,7 @@ class mask(image):
     @property
     def pandas(self):                
         df = self.info[['subject','img','pixels']]
+        df.loc['hasmask'] = False
         props = self.properties        
         if props is not None:
             for k, v in props.items():
