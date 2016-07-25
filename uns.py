@@ -46,8 +46,11 @@ class image():
         """ Load image file """
         return io.imread(os.path.join(trainfolder, self.filename))
 
-    def load_rgb(self):
-        grayscale = self.load()
+    def load_rgb(self, trim=2):
+        if trim>0:
+            grayscale = self.image[trim:-trim,trim:-trim]
+        else:
+            grayscale = self.image
         return np.dstack((grayscale,grayscale,grayscale))
     
     def plot(self, ax=None, **plotargs):
@@ -272,21 +275,21 @@ class batch(list):
         imageset consists of rows from training.bin"""
         return np.array([im.image.image for im in self])
     
-    def array_masks(self):
-        """Load masks from the batch into a 3-D ndarray"""
+    def array_masks(self, trim=2):
+        """Load masks from the batch into a 4-D ndarray"""
         entries=[]
         for impair in self:
-            raw_mask=impair.mask.load()
-            toAdd=np.zeros([420,580,2])
-            toAdd[:,:,0]=(raw_mask==0).astype(int)
-            toAdd[:,:,1]=(raw_mask==255).astype(int)
-            entries.append(toAdd)
-        return np.array(entries)
+            if trim>0:
+                raw_mask=impair.mask.image[trim:-trim,trim:-trim].astype(bool)
+            else: 
+                raw_mask = impair.mask.image.astype(bool)
+            entries.append(np.dstack((raw_mask, ~raw_mask)))
+        return np.array(entries).astype(np.float32)
     
-    def array_rgb(self):
+    def array_rgb(self, trim=2):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
-        return np.array([im.image.load_rgb() for im in self])
+        return np.array([im.image.load_rgb(trim=trim) for im in self])
    
     def plot_grid(self, ncols=5, plotimage=True, plotcontour=True, plotpred=False, figwidth=16):
         """Plot a grid of images, optionally overlaying contours and predicted contours
