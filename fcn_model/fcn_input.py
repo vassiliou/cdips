@@ -82,7 +82,7 @@ def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
         num_threads=num_preprocess_threads,
         capacity=min_queue_examples + 3 * batch_size)
   # Display the masks in the visualizer.
-  tf.image_summary('masks', mask_batch[:,:,:,:1])
+  tf.image_summary('masks', 255*mask_batch[:,:,:,:1])
   # print(images.get_shape())
   # print(label_batch.get_shape())
   return fc6_batch, pool_batch, mask_batch
