@@ -21,7 +21,7 @@ def make_batches(trainingData,batch_size):
 
 def load_batch(batch):
     """ Returns an array of images """
-    return batch.array_rgb()
+    return batch.array_rgb(), batch.array_masks()
     
 
 def read_output(path,layer_dims):
