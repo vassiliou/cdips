@@ -3,30 +3,38 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from . import fcn_input
-from . import fcn16_vgg
-from .fcn16_vgg import FCN16VGG
+#from . import fcn_input
+#from . import fcn16_vgg
+#from .fcn16_vgg import FCN16VGG
+
+import fcn_input
+import fcn16_vgg
+from fcn16_vgg import FCN16VGG
 
 FLAGS = tf.app.flags.FLAGS
 
 # Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 100,
-                            """Number of images to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir', '/Users/gus/CDIPS/uns/fcn_model/data',
+tf.app.flags.DEFINE_integer('batch_size', 1,
+                            """Number of records to process in a batch.""")
+tf.app.flags.DEFINE_string('data_dir', '/Users/gus/CDIPS/bottleneck_files',
                            """Path to the input data directory.""")
-tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
 
-# Global constants describing the MNIST data set.
-IMAGE_SIZE = fcn_input.IMAGE_SIZE
+#tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
+
+# Global constants describing the data .
+
 NUM_CLASSES = fcn_input.NUM_CLASSES
+PREDICTION_SHAPE = [416,576,NUM_CLASSES]
 NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = fcn_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
 NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = fcn_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+
+
 
 # Constants describing the training process.
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
 NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
 LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 10e-4       # Initial learning rate.
+INITIAL_LEARNING_RATE = 10e-6       # Initial learning rate.
 
 def _activation_summary(x):
   """Helper to create summaries for activations.
@@ -70,11 +78,15 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 
 
 class bottledFCN16(FCN16VGG):
-    def __init__(self,vgg_path = FLAGS.vgg_path):
+    global PREDICTION_SHAPE
+    
+    def __init__(self,vgg_path = '/Users/gus/CDIPS/vgg16.npy'):
         FCN16VGG.__init__(self,vgg_path)
 
     def build(self, inputs,train = False,num_classes=2, random_init_fc8=False,debug=False):
         """ argument inputs is tuple of (fc6_output, pool4_output)  """
+
+        output_shape = tf.TensorShape([None]+PREDICTION_SHAPE)
         
         self.fc7 = self._fc_layer(inputs[0], "fc7")
         if train:
@@ -104,7 +116,7 @@ class bottledFCN16(FCN16VGG):
         
         
         self.upscore32 = self._upscore_layer(self.fuse_pool4,
-                                             shape=None,
+                                             shape=tf.shape(inputs[2]),
                                              num_classes=num_classes,
                                              debug=debug, name='upscore32',
                                              ksize=32, stride=16)
@@ -122,7 +134,7 @@ def inputs():
 ### helpers to build layers
 
 
-def inference(image_batch):
+def inference(inputs):
   """Build our MNIST model.
 
   Args:
@@ -143,7 +155,7 @@ def inference(image_batch):
   with tf.name_scope('vgg_net') as scope:
     net.build(inputs,train=False,num_classes=2,random_init_fc8=True)
   
-  return net.upscore32
+  return (net.upscore32,net.fuse_pool4)
 
 
 def loss(logits, labels, num_classes):
@@ -161,6 +173,8 @@ def loss(logits, labels, num_classes):
     Returns:
       loss: Loss tensor of type float.
     """
+
+
     with tf.name_scope('loss'):
         logits = tf.reshape(logits, (-1, num_classes))
         epsilon = tf.constant(value=1e-4)
@@ -248,9 +262,9 @@ def train(total_loss, global_step):
     tf.histogram_summary(var.op.name, var)
 
   # Add histograms for gradients.
-  for grad, var in grads:
-    if grad is not None:
-      tf.histogram_summary(var.op.name + '/gradients', grad)
+  #for grad, var in grads:
+   # if grad is not None:
+   #   tf.histogram_summary(var.op.name + '/gradients', grad)
 
   # Track the moving averages of all trainable variables.
   variable_averages = tf.train.ExponentialMovingAverage(

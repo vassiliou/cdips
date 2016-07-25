@@ -7,38 +7,51 @@ import os
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-IMAGE_SIZE = 28
+FLAGS = tf.app.flags.FLAGS
+
+tf.app.flags.DEFINE_integer('num_data_files', 3,
+                            """Number of datafiles in our data directory.""")
 
 
-# Global constants describing the MNIST data set.
-NUM_CLASSES = 10
+
+
+
+# Global constants describing the  data set.
+NUM_CLASSES = 2
 NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 20000
 NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
 
-def read_mnist(filename_queue):
-    class MNISTRecord(object):
+def read_record(filename_queue):
+    class BottleneckRecord(object):
         pass
-    result = MNISTRecord()
-  
-    label_bytes = 10  
-    result.height = 28
-    result.width = 28
-    result.depth = 1
-    image_bytes = result.height * result.width * result.depth
-    record_bytes = label_bytes + image_bytes
-    #print(record_bytes)
+    result = BottleneckRecord()
+    result.mask_height = 416
+    result.mask_width = 576
+    result.mask_depth = 2
+    result.fc6_height=13
+    result.fc6_width=18
+    result.fc6_depth=4096
+    result.pool_height=26
+    result.pool_width=36
+    result.pool_depth=512
+    fc6_len = result.fc6_height*result.fc6_width*result.fc6_depth
+    pool_len = result.pool_height*result.pool_width*result.pool_depth
+    mask_len = result.mask_height*result.mask_width*result.mask_depth
+    record_len = fc6_len + pool_len + mask_len
 
-    reader = tf.FixedLengthRecordReader(record_bytes=record_bytes)
+    reader = tf.FixedLengthRecordReader(record_bytes=4*record_len)
     result.key, value = reader.read(filename_queue)
-    record_bytes = tf.decode_raw(value, tf.uint8)
-    raw_image = tf.reshape(tf.slice(record_bytes, [0], [image_bytes]),[result.height, result.width, result.depth])
-    result.image = tf.cast(raw_image,tf.float32)/255
-    result.label = tf.slice(record_bytes, [image_bytes], [label_bytes])
+    record_bytes = tf.decode_raw(value, tf.float32)
+    #print(record_bytes.get_shape())
+    result.fc6 = tf.reshape(tf.slice(record_bytes, [0], [fc6_len]),[result.fc6_height, result.fc6_width, result.fc6_depth])
+    result.pool = tf.reshape(tf.slice(record_bytes, [fc6_len], [pool_len]),[result.pool_height, result.pool_width, result.pool_depth])
+    float_mask = tf.reshape(tf.slice(record_bytes, [pool_len+fc6_len], [mask_len]),[result.mask_height, result.mask_width, result.mask_depth])
+    result.mask = tf.cast(float_mask,tf.uint8)
     return result
 
 
-def _generate_image_and_label_batch(image, label, min_queue_examples,
-                                    batch_size,shuffle):
+def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
+                                    batch_size, shuffle):
   """Construct a queued batch of images and labels.
 
   Args:
@@ -56,26 +69,26 @@ def _generate_image_and_label_batch(image, label, min_queue_examples,
   # read 'batch_size' images + labels from the example queue.
   num_preprocess_threads = 16
   if shuffle:
-    images, label_batch = tf.train.shuffle_batch(
-        [image, label],
+    fc6_batch, pool_batch, mask_batch = tf.train.shuffle_batch(
+        [fc6, pool, mask],
         batch_size=batch_size,
         num_threads=num_preprocess_threads,
         capacity=min_queue_examples + 3 * batch_size,
         min_after_dequeue=min_queue_examples)
   else:
-    images, label_batch = tf.train.batch(
-        [image, label],
+    fc6_batch, pool_batch, mask_batch = tf.train.batch(
+        [fc6,pool, mask],
         batch_size=batch_size,
         num_threads=num_preprocess_threads,
         capacity=min_queue_examples + 3 * batch_size)
-  # Display the training images in the visualizer.
-  tf.image_summary('images', images)
+  # Display the masks in the visualizer.
+  tf.image_summary('masks', mask_batch[:,:,:,:1])
   # print(images.get_shape())
   # print(label_batch.get_shape())
-  return images, tf.reshape(label_batch, [batch_size,10])
+  return fc6_batch, pool_batch, mask_batch
 
 
-def inputs(data_dir, batch_size):
+def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
   """Construct input for evaluation using the Reader ops.
 
   Args:
@@ -87,8 +100,10 @@ def inputs(data_dir, batch_size):
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
     labels: Labels. 1D tensor of [batch_size] size.
   """
-  filenames = [os.path.join(data_dir, 'data_chunk_%d.bin' % i)
-               for i in xrange(1, 6)]
+
+   
+  filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
+               for i in xrange(1,num_data_files+1)]
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
@@ -99,8 +114,7 @@ def inputs(data_dir, batch_size):
   filename_queue = tf.train.string_input_producer(filenames)
 
   # Read examples from files in the filename queue.
-  read_input = read_mnist(filename_queue)
-  image = tf.cast(read_input.image, tf.float32)
+  read_input = read_record(filename_queue)
 
   # Subtract off the mean and divide by the variance of the pixels??
  
@@ -108,12 +122,13 @@ def inputs(data_dir, batch_size):
   min_fraction_of_examples_in_queue = 0.1
   min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
                            min_fraction_of_examples_in_queue)
+
   #print(min_queue_examples)
-  print ('Filling queue with %d CIFAR images before starting to train. '
+  print ('Filling queue with %d bottlenecked inputs before starting to train. '
          'This will take a few minutes.' % min_queue_examples)
 
   # Generate a batch of images and labels by building up a queue of examples.
-  return _generate_image_and_label_batch(image, read_input.label,
+  return _generate_bottlenecked_batch(read_input.fc6, read_input.pool,read_input.mask,
                                          min_queue_examples, batch_size,
                                          shuffle=True)
 

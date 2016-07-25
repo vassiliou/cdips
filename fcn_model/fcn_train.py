@@ -10,12 +10,15 @@ import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-from . import fcn_model as model 
-from . import fcn_input as inpt
+#from . import fcn_model as model 
+#from . import fcn_input as inpt
+
+import fcn_model as model
+import fcn_input as inpt
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/Users/gus/CDIPS/practice-training/mnist_training',
+tf.app.flags.DEFINE_string('train_dir', '/Users/gus/CDIPS/uns/fcn_train_log',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 tf.app.flags.DEFINE_integer('max_steps', 10000,
@@ -23,27 +26,31 @@ tf.app.flags.DEFINE_integer('max_steps', 10000,
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
+NUM_CLASSES = 2
+
+#tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
+
 
 def train():
   """Train model for a number of steps."""
   with tf.Graph().as_default():
     global_step = tf.Variable(0, trainable=False)
 
-    # Get images and labels for MNIST data.
-    images, labels = model.inputs()
+    # Get the bottlennecked  data.
+    fc6_batch, pool_batch, mask_batch = model.inputs()
     
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits = model.inference(images)
-
+    logits,fuse_pool = model.inference((fc6_batch,pool_batch,mask_batch))
+    
     # Calculate loss.
-    loss = model.loss(logits, labels)
+    loss = model.loss(logits, mask_batch,NUM_CLASSES)
 
     # Build a Graph that trains the model with one batch of examples and
     # updates the model parameters.
     train_op = model.train(loss, global_step)
 
-    accuracy = model.accuracy(logits,labels)
+    #accuracy = model.accuracy(logits,labels)
 
     # Create a saver.
     saver = tf.train.Saver(tf.all_variables())
@@ -68,7 +75,12 @@ def train():
 
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
-      _, loss_value,accuracy_value = sess.run([train_op, loss,accuracy])
+      #test = sess.run(fuse_pool)
+      #print(test.shape)
+      #print(fc6_batch.get_shape())
+      #print(pool_batch.get_shape())
+      #print(mask_batch.get_shape())
+      _, loss_value = sess.run([train_op, loss])
       #print(sess.run(images)[0])
       duration = time.time() - start_time
 
@@ -79,9 +91,9 @@ def train():
         examples_per_sec = num_examples_per_step / duration
         sec_per_batch = float(duration)
 
-        format_str = ('%s: step %d, batch accuracy = %.2f (%.1f examples/sec; %.3f '
+        format_str = ('%s: step %d, batch loss = %.2f (%.1f examples/sec; %.3f '
                       'sec/batch)')
-        print (format_str % (datetime.now(), step, accuracy_value,
+        print (format_str % (datetime.now(), step, loss_value,
                              examples_per_sec, sec_per_batch))
 
       if step % 100 == 0:
