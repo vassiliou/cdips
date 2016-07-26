@@ -10,18 +10,19 @@ import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
+
 #from . import fcn_model as model 
 #from . import fcn_input as inpt
 
 import fcn_model as model
-import fcn_input as inpt
+#import fcn_input as inpt
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/Users/gus/CDIPS/uns/fcn_train_log',
+tf.app.flags.DEFINE_string('train_dir', '../../fcn_train_log',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 10000,
+tf.app.flags.DEFINE_integer('max_steps', 400000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -61,15 +62,20 @@ def train():
     # Build an initialization operation to run below.
     init = tf.initialize_all_variables()
 
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    config.log_device_placement=FLAGS.log_device_placement
     # Start running operations on the Graph.
-    sess = tf.Session(config=tf.ConfigProto(
-        log_device_placement=FLAGS.log_device_placement))
-    print('Initializing all variables...')
+    sess = tf.Session(config=config)
+    print('Initializing all variables...', end='')
     sess.run(init)
-
+    print('done')
+    
+    
     # Start the queue runners.
+    print('Starting queue runners...', end='')
     tf.train.start_queue_runners(sess=sess)
-    print('Starting queue runners...')
+    print('done')
     
     summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph)
 
@@ -80,7 +86,9 @@ def train():
       #print(fc6_batch.get_shape())
       #print(pool_batch.get_shape())
       #print(mask_batch.get_shape())
+      print('About to run...', end='')
       _, loss_value = sess.run([train_op, loss])
+      print('done')
       #print(sess.run(images)[0])
       duration = time.time() - start_time
 
@@ -96,12 +104,12 @@ def train():
         print (format_str % (datetime.now(), step, loss_value,
                              examples_per_sec, sec_per_batch))
 
-      if step % 100 == 0:
+      if step % 5000 == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
-      if step % 1000 == 0 or (step + 1) == FLAGS.max_steps:
+      if step % 40000 == 0 or (step + 1) == FLAGS.max_steps:
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
 

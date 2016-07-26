@@ -16,7 +16,7 @@ FLAGS = tf.app.flags.FLAGS
 # Basic model parameters.
 tf.app.flags.DEFINE_integer('batch_size', 1,
                             """Number of records to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir', '/Users/gus/CDIPS/bottleneck_files',
+tf.app.flags.DEFINE_string('data_dir', '../../bottleneck_files',
                            """Path to the input data directory.""")
 
 #tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
@@ -80,7 +80,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
 class bottledFCN16(FCN16VGG):
     global PREDICTION_SHAPE
     
-    def __init__(self,vgg_path = '/Users/gus/CDIPS/vgg16.npy'):
+    def __init__(self,vgg_path = '../../vgg16.npy'):
         FCN16VGG.__init__(self,vgg_path)
 
     def build(self, inputs,train = False,num_classes=2, random_init_fc8=False,debug=False):

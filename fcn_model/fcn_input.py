@@ -9,7 +9,7 @@ import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_integer('num_data_files', 3,
+tf.app.flags.DEFINE_integer('num_data_files', 1408,
                             """Number of datafiles in our data directory.""")
 
 
@@ -18,8 +18,8 @@ tf.app.flags.DEFINE_integer('num_data_files', 3,
 
 # Global constants describing the  data set.
 NUM_CLASSES = 2
-NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 20000
-NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 10000
+NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 2000
+NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = 200
 
 def read_record(filename_queue):
     class BottleneckRecord(object):
