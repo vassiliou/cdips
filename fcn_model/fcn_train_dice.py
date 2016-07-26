@@ -53,24 +53,18 @@ def train():
 
     #dice score
 
-    def dice(prediction,ground_truth):
-      denom =  prediction.sum() + ground_truth.sum()
-      if denom == 0:
-        return 1
-      else:
-        cap = np.logical_and(prediction,ground_truth)
-        n_cap = cap.sum()
-        return 2*n_cap/denom
-
-    def batch_dice(pred_batch, label_batch):
-      ### we should probably vectorize this...
-      assert pred_batch.shape[0] == label_batch.shape[0]
-      pred_batch = pred_batch.reshape([-1,model.PREDICTION_SHAPE[0],model.PREDICTION_SHAPE[1]])
-      label_batch = label_batch.reshape([-1,model.PREDICTION_SHAPE[0],model.PREDICTION_SHAPE[1]])
-      batch_dice=[]
-      for ix in range(label_batch.shape[0]-1):
-        batch_dice.append( dice(pred_batch[ix,:,:],label_batch[ix,:,:]) )
-      return np.array(batch_dice).mean()
+    def ndice(pred_batch,label_batch):
+      preds = pred_batch.reshape([label_batch.shape[0],model.PREDICTION_SHAPE[0],model.PREDICTION_SHAPE[1]])
+      labels = label_batch.reshape([label_batch.shape[0],model.PREDICTION_SHAPE[0],model.PREDICTION_SHAPE[1]])
+      denoms = np.sum(preds,axis=(1,2)) + np.sum(labels,axis=(1,2))
+      cap = np.logical_and(preds, labels)
+      numerators = 2*np.sum(cap, axis=(1,2))
+      zero_denoms = np.where(denoms ==0)
+      nonzero_denoms = np.where (denoms !=0)
+      result = np.empty(denoms.shape)
+      result[zero_denoms] = 1
+      result[nonzero_denoms] = np.divide(numerators[nonzero_denoms],denoms[nonzero_denoms])
+      return result.mean()
 
         
     # Create a saver.
@@ -118,7 +112,7 @@ def train():
         num_examples_per_step = FLAGS.batch_size
         examples_per_sec = num_examples_per_step / duration
         sec_per_batch = float(duration)
-        batched_dice = batch_dice(predict,ground_truth)
+        batch_dice = ndice(predict,ground_truth[1])
         format_str = ('%s: step %d, batch loss = %.2f, batch dice score = %.2f (%.1f examples/sec; %.3f '
                       'sec/batch)')
         print (format_str % (datetime.now(), step, loss_value,
