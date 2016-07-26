@@ -140,6 +140,13 @@ def inputs():
                                         batch_size=FLAGS.batch_size)
 
 
+def eval_inputs():
+    if not FLAGS.eval_dir:
+          raise ValueError('Please supply a data_dir')
+    data_dir = FLAGS.eval_dir
+    return fcn_input.inputs(data_dir=data_dir,
+                                        batch_size=FLAGS.batch_size)
+
 ### helpers to build layers
 
 

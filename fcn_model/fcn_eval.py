@@ -43,7 +43,7 @@ def eval():
     global_step = tf.Variable(0, trainable=False)
 
     # Get the bottlennecked  data.
-    fc6_batch, pool_batch, mask_batch = model.inputs(data_dir = model.eval_dir)
+    fc6_batch, pool_batch, mask_batch = model.inputs()
 
     # Ground truth masks
     mask_labels = tf.split(3, 2,mask_batch)[1]
