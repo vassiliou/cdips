@@ -17,7 +17,16 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('batch_size', 1,
                             """Number of records to process in a batch.""")
 tf.app.flags.DEFINE_string('data_dir', '../../bottleneck_files',
-                           """Path to the input data directory.""")
+                           """Path to the training input data directory.""")
+tf.app.flags.DEFINE_string('eval_dir', '../../bottleneck_files',
+                           """Path to the eval input data directory.""")
+tf.app.flags.DEFINE_string('test_dir', '../../bottleneck_files',
+                           """Path to the test input data directory.""")
+## Gus' data directory path
+#tf.app.flags.DEFINE_string('data_dir', '/Users/gus/CDIPS/bottleneck_files',
+#                          """Path to the input data directory.""")
+
+
 
 #tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
 
@@ -134,6 +143,15 @@ def inputs():
 ### helpers to build layers
 
 
+
+def eval_inference(inputs):
+  net = bottledFCN16()
+  
+  with tf.name_scope('vgg_net') as scope:
+    net.build(inputs,train=False,num_classes=2,random_init_fc8=False)
+  
+  return net.upscore32,net.pred_up
+
 def inference(inputs):
   """Build our MNIST model.
 
@@ -153,9 +171,9 @@ def inference(inputs):
   net = bottledFCN16()
   
   with tf.name_scope('vgg_net') as scope:
-    net.build(inputs,train=False,num_classes=2,random_init_fc8=True)
+    net.build(inputs,train=True,num_classes=2,random_init_fc8=True)
   
-  return (net.upscore32,net.fuse_pool4)
+  return (net.upscore32,net.pred_up)
 
 
 def loss(logits, labels, num_classes):
