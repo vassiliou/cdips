@@ -10,19 +10,14 @@ import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-
-#from . import fcn_model as model 
-#from . import fcn_input as inpt
-
 import fcn_model as model
-#import fcn_input as inpt
-
+import uns
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('train_dir', '../../fcn_train_log',
                            """Directory where to write event logs """
                            """and checkpoint.""")
-tf.app.flags.DEFINE_integer('max_steps', 400000,
+tf.app.flags.DEFINE_integer('max_steps', 40000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
@@ -45,7 +40,7 @@ def train():
     logits,fuse_pool = model.inference((fc6_batch,pool_batch,mask_batch))
     
     # Calculate loss.
-    loss = model.loss(logits, mask_batch,NUM_CLASSES)
+    loss = model.loss(logits, mask_batch, NUM_CLASSES)
 
     # Build a Graph that trains the model with one batch of examples and
     # updates the model parameters.
@@ -81,15 +76,7 @@ def train():
 
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
-      #test = sess.run(fuse_pool)
-      #print(test.shape)
-      #print(fc6_batch.get_shape())
-      #print(pool_batch.get_shape())
-      #print(mask_batch.get_shape())
-      print('About to run...', end='')
       _, loss_value = sess.run([train_op, loss])
-      print('done')
-      #print(sess.run(images)[0])
       duration = time.time() - start_time
 
       assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
@@ -104,12 +91,12 @@ def train():
         print (format_str % (datetime.now(), step, loss_value,
                              examples_per_sec, sec_per_batch))
 
-      if step % 5000 == 0:
+      if step % 500 == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
-      if step % 40000 == 0 or (step + 1) == FLAGS.max_steps:
+      if step % 10000 == 0 or (step + 1) == FLAGS.max_steps:
         checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
 

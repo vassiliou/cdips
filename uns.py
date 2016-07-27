@@ -12,14 +12,26 @@ import pandas as pd
 import numpy as np
 
 datafolder = "/Users/gus/CDIPS/nerve-project/"
+trainbinfolder = "training.bin"
 
 if os.environ['USER'] == 'chrisv':
-    datafolder = '../'
+    print(os.environ['USER'], end='')
+    if os.environ['SESSION'] == 'Lubuntu':
+        print(" on Lubuntu")        
+        datafolder = '/home/chrisv/code'
+        trainbin = '/home/chrisv/code/uns/training.bin'
+        bottlefolder = '/home/chrisv/code/bottleneck_files'
+    else:
+        print(" on Mac")
+        for k,v in sorted(os.environ.items()):
+            print((k,v))
+    
 
+    
 trainfolder = os.path.join(datafolder, 'train')
 testfolder = os.path.join(datafolder, 'test')
 
-training = pd.read_msgpack('training.bin')
+training = pd.read_msgpack(trainbin)
 
 class image():
     def __init__(self, row):

@@ -6,11 +6,29 @@ import os
 
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
+import uns
+from uns import training
+import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_integer('num_data_files', 1408,
-                            """Number of datafiles in our data directory.""")
+"""
+  set up training and validation set
+
+"""
+VALIDATE_FRACTION = 0.2
+indices = training.index.values
+np.random.seed(123456)  
+np.random.shuffle(indices)
+
+cut_idx = int(len(indices) * (1-VALIDATE_FRACTION))
+train_idx = indices[:cut_idx]
+validate_idx = indices[cut_idx:]
+
+trainimgs = uns.batch(training.iloc[train_idx])
+validimgs = uns.batch(training.iloc[validate_idx])
+tf.app.flags.DEFINE_integer('num_data_files', len(train_idx),
+                            """Number of training files in our data directory.""")
 
 
 
@@ -100,10 +118,14 @@ def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
     labels: Labels. 1D tensor of [batch_size] size.
   """
-
-   
-  filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
-               for i in xrange(1,num_data_files+1)]
+  
+#  filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
+#               for i in xrange(1,num_data_files+1)]:
+  
+  
+  filenames = [os.path.join(uns.bottlefolder,'{f}'.format(f=im.bottlefile))
+               for im in trainimgs]
+  
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
@@ -130,5 +152,5 @@ def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
   # Generate a batch of images and labels by building up a queue of examples.
   return _generate_bottlenecked_batch(read_input.fc6, read_input.pool,read_input.mask,
                                          min_queue_examples, batch_size,
-                                         shuffle=True)
+                                         shuffle=False)
 
