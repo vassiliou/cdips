@@ -110,8 +110,14 @@ class mask(image):
     @contour.setter
     def contour(self, contour):
         self._contour = contour
-        
 
+    def one_hot(self, trim=2):
+        if trim>0:
+            raw_mask=self.image[trim:-trim,trim:-trim].astype(bool)
+        else: 
+            raw_mask = self.image.astype(bool)
+        return np.dstack((raw_mask, ~raw_mask)).astype(np.float32)
+    
     @property
     def properties(self):
         """Return a set of metrics on the masks with units of distance """
@@ -238,7 +244,8 @@ class image_pair(object):
         if pred is None:
             self.pred = mask(np.zeros((420, 580)))
         self._score = None
-        
+        self.predfile = self.image.title + '_pred.tif'
+        self.bottlefile = self.image.title + '.btl'
     def __add__(self, imgpair):
         return self.image + imgpair.image
     
@@ -281,11 +288,7 @@ class batch(list):
         """Load masks from the batch into a 4-D ndarray"""
         entries=[]
         for impair in self:
-            if trim>0:
-                raw_mask=impair.mask.image[trim:-trim,trim:-trim].astype(bool)
-            else: 
-                raw_mask = impair.mask.image.astype(bool)
-            entries.append(np.dstack((raw_mask, ~raw_mask)))
+            entries.append(impair.mask.one_hot(trim=trim))
         return np.array(entries).astype(np.float32)
     
     def array_rgb(self, trim=2):
