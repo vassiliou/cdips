@@ -11,12 +11,16 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 import fcn_model as model
-import uns
+#import uns
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '../../fcn_train_log',
+tf.app.flags.DEFINE_string('train_log_dir', '../../fcn_train_log',
                            """Directory where to write event logs """
                            """and checkpoint.""")
+
+tf.app.flags.DEFINE_integer('batch_size', 1,
+                            """Number of records to process in a batch.""")
+
 tf.app.flags.DEFINE_integer('max_steps', 40000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
@@ -33,7 +37,7 @@ def train():
     global_step = tf.Variable(0, trainable=False)
 
     # Get the bottlennecked  data.
-    fc6_batch, pool_batch, mask_batch = model.inputs()
+    fc6_batch, pool_batch, mask_batch = model.inputs(FLAGS.train_data_dir,train=True)
     
     # Build a Graph that computes the logits predictions from the
     # inference model.
@@ -72,7 +76,7 @@ def train():
     tf.train.start_queue_runners(sess=sess)
     print('done')
     
-    summary_writer = tf.train.SummaryWriter(FLAGS.train_dir, sess.graph)
+    summary_writer = tf.train.SummaryWriter(FLAGS.train_log_dir, sess.graph)
 
     for step in xrange(FLAGS.max_steps):
       start_time = time.time()
@@ -97,7 +101,7 @@ def train():
 
       # Save the model checkpoint periodically.
       if step % 10000 == 0 or (step + 1) == FLAGS.max_steps:
-        checkpoint_path = os.path.join(FLAGS.train_dir, 'model.ckpt')
+        checkpoint_path = os.path.join(FLAGS.train_log_dir, 'model.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
 
 

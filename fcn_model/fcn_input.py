@@ -3,37 +3,73 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import glob
 
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
-import uns
-from uns import training
 import numpy as np
 
 FLAGS = tf.app.flags.FLAGS
 
-"""
-  set up training and validation set
+# say who's trying to run the script
 
-"""
-VALIDATE_FRACTION = 0.2
-indices = training.index.values
-np.random.seed(123456)  
-np.random.shuffle(indices)
+user = 'gus'
 
-cut_idx = int(len(indices) * (1-VALIDATE_FRACTION))
-train_idx = indices[:cut_idx]
-validate_idx = indices[cut_idx:]
+# setup paths to train, validation data directories
 
-trainimgs = uns.batch(training.iloc[train_idx])
-validimgs = uns.batch(training.iloc[validate_idx])
-tf.app.flags.DEFINE_integer('num_data_files', len(train_idx),
-                            """Number of training files in our data directory.""")
+if user == 'gus':
+    
+    tf.app.flags.DEFINE_string('train_data_dir', '/Users/gus/CDIPS/bottleneck_files',
+                           """Path to the training input data directory.""")
+    tf.app.flags.DEFINE_string('eval_dir', '/Users/gus/CDIPS/bottleneck_files',
+                          """Path to the eval data directory.""")
+else:
+    
+    tf.app.flags.DEFINE_string('train_data_dir', '../../bottleneck_files',
+                           """Path to the training input data directory.""")    
+
+    tf.app.flags.DEFINE_string('eval_dir', '../../bottleneck_files',
+                           """Path to the eval input data directory.""")
+    
+
+#tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
+
+
+#"""
+#  set up training and validation set
+
+#"""
+
+if user != 'gus':
+
+    import uns
+    from uns import training
+    
+    VALIDATE_FRACTION = 0.2
+    indices = training.index.values
+    np.random.seed(123456)  
+    np.random.shuffle(indices)
+
+    cut_idx = int(len(indices) * (1-VALIDATE_FRACTION))
+    train_idx = indices[:cut_idx]
+    validate_idx = indices[cut_idx:]
+
+    trainimgs = uns.batch(training.iloc[train_idx])
+    validimgs = uns.batch(training.iloc[validate_idx])
+    tf.app.flags.DEFINE_integer('num_train_files',len(train_idx) ,
+                          """Number of training files in our data directory.""")
+    tf.app.flags.DEFINE_integer('num_eval_files',len(validate_idx) ,
+                          """Number of crossvalidation files in our data directory.""")
+else:
+     tf.app.flags.DEFINE_integer('num_train_files',14 ,
+                          """Number of training files in our data directory.""")
+     tf.app.flags.DEFINE_integer('num_eval_files',14 ,
+                          """Number of crossvalidation in our data directory.""")
 
 
 
 
-
+     
 # Global constants describing the  data set.
 NUM_CLASSES = 2
 NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN = 2000
@@ -57,6 +93,9 @@ def read_record(filename_queue):
     mask_len = result.mask_height*result.mask_width*result.mask_depth
     record_len = fc6_len + pool_len + mask_len
 
+    # keep track of subject and image number...
+
+    
     reader = tf.FixedLengthRecordReader(record_bytes=4*record_len)
     result.key, value = reader.read(filename_queue)
     record_bytes = tf.decode_raw(value, tf.float32)
@@ -106,26 +145,22 @@ def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
   return fc6_batch, pool_batch, mask_batch
 
 
-def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
+def inputs(data_dir, batch_size,train=True):
   """Construct input for evaluation using the Reader ops.
 
   Args:
-    eval_data: bool, indicating if one should use the train or eval data set.
-    data_dir: Path to the MNIST data directory.
+    data_dir : where to look for datafiles
     batch_size: Number of images per batch.
 
   Returns:
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
     labels: Labels. 1D tensor of [batch_size] size.
   """
-  
-#  filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
-#               for i in xrange(1,num_data_files+1)]:
-  
-  
-  filenames = [os.path.join(uns.bottlefolder,'{f}'.format(f=im.bottlefile))
-               for im in trainimgs]
-  
+  pattern = os.path.join(data_dir, '*.btl')
+  #filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
+  #             for i in xrange(1,num_data_files+1)]
+  filenames = glob.glob(pattern)
+ 
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
@@ -133,7 +168,7 @@ def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
 
 
   # Create a queue that produces the filenames to read.
-  filename_queue = tf.train.string_input_producer(filenames)
+  filename_queue = tf.train.string_input_producer(filenames,shuffle=train)
 
   # Read examples from files in the filename queue.
   read_input = read_record(filename_queue)
@@ -141,7 +176,7 @@ def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
   # Subtract off the mean and divide by the variance of the pixels??
  
   # Ensure that the random shuffling has good mixing properties.
-  min_fraction_of_examples_in_queue = 0.1
+  min_fraction_of_examples_in_queue = 0.3
   min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
                            min_fraction_of_examples_in_queue)
 
@@ -152,5 +187,5 @@ def inputs(data_dir, batch_size,num_data_files=FLAGS.num_data_files):
   # Generate a batch of images and labels by building up a queue of examples.
   return _generate_bottlenecked_batch(read_input.fc6, read_input.pool,read_input.mask,
                                          min_queue_examples, batch_size,
-                                         shuffle=False)
+                                         shuffle=train)
 

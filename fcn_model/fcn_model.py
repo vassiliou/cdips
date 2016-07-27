@@ -13,22 +13,6 @@ from fcn16_vgg import FCN16VGG
 
 FLAGS = tf.app.flags.FLAGS
 
-# Basic model parameters.
-tf.app.flags.DEFINE_integer('batch_size', 1,
-                            """Number of records to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir', '../../bottleneck_files',
-                           """Path to the training input data directory.""")
-tf.app.flags.DEFINE_string('eval_dir', '../../bottleneck_files',
-                           """Path to the eval input data directory.""")
-tf.app.flags.DEFINE_string('test_dir', '../../bottleneck_files',
-                           """Path to the test input data directory.""")
-## Gus' data directory path
-#tf.app.flags.DEFINE_string('data_dir', '/Users/gus/CDIPS/bottleneck_files',
-#                          """Path to the input data directory.""")
-
-
-
-#tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
 
 # Global constants describing the data .
 
@@ -132,32 +116,15 @@ class bottledFCN16(FCN16VGG):
 
         self.pred_up = tf.argmax(self.upscore32, dimension=3)
 
-def inputs():
-    if not FLAGS.data_dir:
-          raise ValueError('Please supply a data_dir')
-    data_dir = FLAGS.data_dir
+
+
+def inputs(data_dir,train=True):
+
     return fcn_input.inputs(data_dir=data_dir,
-                                        batch_size=FLAGS.batch_size)
-
-
-def eval_inputs():
-    if not FLAGS.eval_dir:
-          raise ValueError('Please supply a data_dir')
-    data_dir = FLAGS.eval_dir
-    return fcn_input.inputs(data_dir=data_dir,
-                                        batch_size=FLAGS.batch_size)
-
-### helpers to build layers
+                                        batch_size=FLAGS.batch_size,train=train)
 
 
 
-def eval_inference(inputs):
-  net = bottledFCN16()
-  
-  with tf.name_scope('vgg_net') as scope:
-    net.build(inputs,train=False,num_classes=2,random_init_fc8=False)
-  
-  return net.upscore32,net.pred_up
 
 def inference(inputs):
   """Build our MNIST model.
