@@ -21,7 +21,7 @@ tf.app.flags.DEFINE_string('train_log_dir', '../../fcn_train_log',
 tf.app.flags.DEFINE_integer('batch_size', 1,
                             """Number of records to process in a batch.""")
 
-tf.app.flags.DEFINE_integer('max_steps', 40000,
+tf.app.flags.DEFINE_integer('max_steps', 100000,
                             """Number of batches to run.""")
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
