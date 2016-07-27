@@ -232,9 +232,11 @@ class mask(image):
         
     
 class image_pair(object):
-    def __init__(self, row):
+    def __init__(self, row, pred=None):
         self.image = image(row)
         self.mask = mask(row)
+        if pred is None:
+            self.pred = mask(np.zeros((420, 580)))
         self._score = None
         
     def __add__(self, imgpair):
