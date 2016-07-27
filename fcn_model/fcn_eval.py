@@ -77,7 +77,7 @@ def eval(data_dir):
   
     # The model's predictions
 
-    logits,prediction = model.inference((fc6_batch,pool_batch,mask_batch))
+    logits,prediction = model.inference((fc6_batch,pool_batch,mask_batch),train=False)
     
     # Calculate loss.
     #loss = model.loss(logits, mask_batch,NUM_CLASSES)

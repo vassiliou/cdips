@@ -41,7 +41,7 @@ def train():
     
     # Build a Graph that computes the logits predictions from the
     # inference model.
-    logits,fuse_pool = model.inference((fc6_batch,pool_batch,mask_batch))
+    logits,fuse_pool = model.inference((fc6_batch,pool_batch,mask_batch),train=True)
     
     # Calculate loss.
     loss = model.loss(logits, mask_batch, NUM_CLASSES)

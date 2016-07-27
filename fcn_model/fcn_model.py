@@ -126,7 +126,7 @@ def inputs(data_dir,train=True):
 
 
 
-def inference(inputs):
+def inference(inputs,train=True):
   """Build our MNIST model.
 
   Args:
@@ -145,7 +145,7 @@ def inference(inputs):
   net = bottledFCN16()
   
   with tf.name_scope('vgg_net') as scope:
-    net.build(inputs,train=True,num_classes=2,random_init_fc8=True)
+    net.build(inputs,train=train,num_classes=2,random_init_fc8=train)
   
   return (net.upscore32,net.pred_up)
 
