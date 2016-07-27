@@ -19,10 +19,22 @@ import fcn_input as inpt
 FLAGS = tf.app.flags.FLAGS
 
 
-tf.app.flags.DEFINE_string('checkpoint_path', '/Users/gus/CDIPS/model.ckpt-40000',
+checkpath = '/Users/gus/CDIPS/model.ckpt-40000'
+outpath = '/Users/gus/CDIPS/fcn_eval_log'
+
+if os.environ['USER'] == 'chrisv':
+    print(os.environ['USER'], end='')
+    if os.environ['SESSION'] == 'Lubuntu':
+        print(" on Lubuntu")        
+        checkpath = '/home/chrisv/code/fcn_train_log/model.ckpt-39999'
+        outpath = '/home/chrisv/code/fcn_train_log/'
+    else:
+        print(" on Mac")
+
+tf.app.flags.DEFINE_string('checkpoint_path', checkpath,
                            """Path to checkpoint file containing learned weights""")
 
-tf.app.flags.DEFINE_string('out_dir', '/Users/gus/CDIPS/fcn_eval_log',"""Directory to write eval output """)
+tf.app.flags.DEFINE_string('out_dir', outpath,"""Directory to write eval output """)
 
 
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
