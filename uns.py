@@ -107,7 +107,7 @@ class mask(image):
                 self.hasmask = False
         return self._contour
     
-    @contour.setter
+    @contour.setter 
     def contour(self, contour):
         self._contour = contour
 
