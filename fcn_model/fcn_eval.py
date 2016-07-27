@@ -2,9 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from datetime import datetime
 import os.path
-import time
+
 
 import numpy as np
 from six.moves import xrange  # pylint: disable=redefined-builtin
@@ -23,13 +22,13 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('checkpoint_path', '/Users/gus/CDIPS/model.ckpt-40000',
                            """Path to checkpoint file containing learned weights""")
 
-tf.app.flags.DEFINE_string('log_dir', 'Users/gus/CDIPS/fcn_eval_log',"""Directory to write eval logs """)
+tf.app.flags.DEFINE_string('out_dir', '/Users/gus/CDIPS/fcn_eval_log',"""Directory to write eval output """)
 
 
 tf.app.flags.DEFINE_boolean('log_device_placement', False,
                             """Whether to log device placement.""")
 
-tf.app.flags.DEFINE_integer('max_steps', 100,
+tf.app.flags.DEFINE_integer('max_steps', 16,
                             """Number of eval batches to run.""")
 
 
@@ -38,7 +37,12 @@ NUM_CLASSES = 2
 #tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
 
 def eval():
-  """Evaluate the model against cross validation dataset."""
+  """Evaluate the model against cross validation dataset.
+
+    Saves predictions and masks as an array of shape [# examples] , 2, 416, 576
+    Slice [:,0,:,:] corresponds to predictions and  slice [:,1,:,:] corresponds to ground truth"""
+
+
   with tf.Graph().as_default():
     global_step = tf.Variable(0, trainable=False)
 
@@ -54,10 +58,7 @@ def eval():
     logits,prediction = model.eval_inference((fc6_batch,pool_batch,mask_batch))
     
     # Calculate loss.
-    loss = model.loss(logits, mask_batch,NUM_CLASSES)
-
-    # Build a Graph that trains the model with one batch of examples and
-    # updates the model parameters.
+    #loss = model.loss(logits, mask_batch,NUM_CLASSES)
 
     #accuracy = model.accuracy(logits,labels)
 
@@ -109,47 +110,25 @@ def eval():
     tf.train.start_queue_runners(sess=sess)
     print('done')
     
-    summary_writer = tf.train.SummaryWriter(FLAGS.log_dir, sess.graph)
+    summary_writer = tf.train.SummaryWriter(FLAGS.out_dir, sess.graph)
 
-    dice_history=[]
+
+    output_records = []
+    
     for step in xrange(FLAGS.max_steps):
-      start_time = time.time()
-      #test = sess.run(fuse_pool)
-      #print(test.shape)
-      #print(fc6_batch.get_shape())
-      #print(pool_batch.get_shape())
-      #print(mask_batch.get_shape())
-      print('About to run...', end='')
-      loss_value,preds,labels = sess.run([loss,prediction,mask_labels])
-      print('done')
-      #print(sess.run(images)[0])
-      duration = time.time() - start_time
 
-      assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
+      preds,labels = sess.run([prediction,mask_labels])
+      labels = labels.reshape(labels.shape[:3])
+      #print(labels.shape)
+      output_records.append(np.array([preds,labels]))
 
-      if step % 1 == 0:
-        num_examples_per_step = FLAGS.batch_size
-        examples_per_sec = num_examples_per_step / duration
-        sec_per_batch = float(duration)
-        batch_dice = ndice(preds,labels)
-        dice_history.append(batch_dice)
-        format_str = ('%s: step %d, batch loss = %.2f, batch dice score = %.2f (%.1f examples/sec; %.3f '
-                      'sec/batch)')
-        print (format_str % (datetime.now(), step, loss_value,
-                             batch_dice,examples_per_sec, sec_per_batch))
-
-      if step % 5 == 0:
-        summary_str = sess.run(summary_op)
-        summary_writer.add_summary(summary_str, step)
-
-      # Save the model checkpoint periodically.
       if (step + 1) == FLAGS.max_steps:
-        dice_array = np.array(dice_history)
-        mean_dice= dice_array.mean()
-        print('Finished evaluation: mean dice score ' + str(mean_dice) )
-        dice_path=FLAGS.log_dir +'/dice_scores'
-        np.save(FLAGS.log_dir +'/dice_scores',dice_array)
-        print('Saved eval set dice scores to '+ dice_path)  
+        print('Finished evaluation.')
+        out_path=FLAGS.out_dir +'/eval_output'
+        collection = np.array(output_records)
+        shaped_collection = collection.reshape([-1,2,416,576])
+        np.save(out_path,shaped_collection)
+        print('Saved cross validation set masks and predictions to: ', out_path)  
 
 
 
