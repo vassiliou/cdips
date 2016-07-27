@@ -8,28 +8,30 @@ import glob
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import numpy as np
+import uns
+import pandas as pd
+
+#pd.msgpack()
 
 FLAGS = tf.app.flags.FLAGS
 
 # say who's trying to run the script
 
-user = 'gus'
+user = 'g'
 
 # setup paths to train, validation data directories
 
 if user == 'gus':
-    
-    tf.app.flags.DEFINE_string('train_data_dir', '/Users/gus/CDIPS/bottleneck_files',
-                           """Path to the training input data directory.""")
-    tf.app.flags.DEFINE_string('eval_dir', '/Users/gus/CDIPS/bottleneck_files',
-                          """Path to the eval data directory.""")
+    bottle_files = '/Users/gus/CDIPS/bottleneck_files'
 else:
+    bottle_files = '/home/chrisv/code/bottleneck_files'
     
-    tf.app.flags.DEFINE_string('train_data_dir', '../../bottleneck_files',
+
+tf.app.flags.DEFINE_string('train_data_dir', bottle_files,
                            """Path to the training input data directory.""")    
 
-    tf.app.flags.DEFINE_string('eval_dir', '../../bottleneck_files',
-                           """Path to the eval input data directory.""")
+tf.app.flags.DEFINE_string('eval_dir', bottle_files,
+                           """Path to the training input data directory.""")    
     
 
 #tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
@@ -56,6 +58,7 @@ if user != 'gus':
 
     trainimgs = uns.batch(training.iloc[train_idx])
     validimgs = uns.batch(training.iloc[validate_idx])
+    
     tf.app.flags.DEFINE_integer('num_train_files',len(train_idx) ,
                           """Number of training files in our data directory.""")
     tf.app.flags.DEFINE_integer('num_eval_files',len(validate_idx) ,
@@ -159,8 +162,10 @@ def inputs(data_dir, batch_size,train=True):
   pattern = os.path.join(data_dir, '*.btl')
   #filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
   #             for i in xrange(1,num_data_files+1)]
-  filenames = glob.glob(pattern)
- 
+  #filenames = glob.glob(pattern)
+  
+  filenames = [os.path.join(bottle_files, f.bottlefile) for f in {True:trainimgs, False:validimgs}[train]]
+  print(len(filenames))
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)

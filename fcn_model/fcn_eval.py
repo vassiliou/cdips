@@ -24,7 +24,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_integer('batch_size', 1,
                             """Number of records to process in a batch.""")
 
-tf.app.flags.DEFINE_integer('max_steps', 16,
+tf.app.flags.DEFINE_integer('max_steps', 500,
                             """Number of eval batches to run.""")
 NUM_CLASSES = 2
 
