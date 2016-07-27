@@ -67,8 +67,9 @@ else:
                           """Number of crossvalidation in our data directory.""")
 
 
-
-
+pattern = os.path.join(FLAGS.eval_dir, '*.btl')
+filenames = glob.glob(pattern)
+print(filenames)
      
 # Global constants describing the  data set.
 NUM_CLASSES = 2
@@ -116,7 +117,7 @@ def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
     label: 1-D Tensor of type.int32
     min_queue_examples: int32, minimum number of samples to retain
       in the queue that provides of batches of examples.
-    batch_size: Number of images per batch.
+      batch_size: Number of images per batch.
 
   Returns:
     images: Images. 4D tensor of [batch_size, height, width, 3] size.
@@ -165,8 +166,10 @@ def inputs(data_dir, batch_size,train=True):
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
 
+  #state = np.RandomState(1234)
 
-
+  #state.shuffle(filenames)
+  
   # Create a queue that produces the filenames to read.
   filename_queue = tf.train.string_input_producer(filenames,shuffle=train)
 
