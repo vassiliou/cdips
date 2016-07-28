@@ -48,15 +48,19 @@ if user != 'gus':
     from uns import training
     
     VALIDATE_FRACTION = 0.2
-    indices = training.index.values
-    np.random.seed(123456)  
-    np.random.shuffle(indices)
+    indices = np.arange(len(training))
+    state = np.random.RandomState(123456)  
+    state.shuffle(indices)
 
     cut_idx = int(len(indices) * (1-VALIDATE_FRACTION))
     train_idx = indices[:cut_idx]
     validate_idx = indices[cut_idx:]
-
+    training['train'] = False
+    training.loc[train_idx, 'train'] = True
+    training['validate'] = False
+    training.loc[validate_idx] = True
     trainimgs = uns.batch(training.iloc[train_idx])
+
     validimgs = uns.batch(training.iloc[validate_idx])
     
     tf.app.flags.DEFINE_integer('num_train_files',len(train_idx) ,
