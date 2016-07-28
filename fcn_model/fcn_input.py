@@ -169,11 +169,17 @@ def inputs(data_dir, batch_size,train=True):
   #             for i in xrange(1,num_data_files+1)]
   #filenames = glob.glob(pattern)
   
-  filenames = [os.path.join(bottle_files, f.bottlefile) for f in {True:trainimgs, False:validimgs}[train]]
-  print(len(filenames))
-  for f in filenames:
-    if not tf.gfile.Exists(f):
-      raise ValueError('Failed to find file: ' + f)
+
+  if user=='gus':
+    pattern = os.path.join(data_dir, '*.btl')
+    filenames = glob.glob(pattern)
+
+  else:
+    filenames = [os.path.join(bottle_files, f.bottlefile) for f in {True:trainimgs, False:validimgs}[train]]
+    print(len(filenames))
+    for f in filenames:
+        if not tf.gfile.Exists(f):
+            raise ValueError('Failed to find file: ' + f)
 
   #state = np.RandomState(1234)
 
