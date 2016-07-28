@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 datafolder = "/Users/gus/CDIPS/nerve-project/"
-trainbinfolder = "training.bin"
+trainbin = "/Users/gus/CDIPS/uns/training.bin"
 
 if os.environ['USER'] == 'chrisv':
     print(os.environ['USER'], end='')
@@ -25,8 +25,8 @@ if os.environ['USER'] == 'chrisv':
         print(" on Mac")
         for k,v in sorted(os.environ.items()):
             print((k,v))
-    
 
+    
     
 trainfolder = os.path.join(datafolder, 'train')
 testfolder = os.path.join(datafolder, 'test')
