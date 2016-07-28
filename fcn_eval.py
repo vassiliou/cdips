@@ -122,7 +122,7 @@ def eval(data_dir):
     summary_writer = tf.train.SummaryWriter(FLAGS.out_dir, sess.graph)
 
 
-   output_records = []
+    output_records = []
     
     for step in xrange(FLAGS.max_steps):    
       probabilities,labels = sess.run([pixel_probabilities,mask_labels])
