@@ -62,7 +62,7 @@ def eval(data_dir):
   """Evaluate the model against cross validation dataset.
 
     Saves predictions and masks as an array of shape [# examples] , 2, 416, 576
-    Slice [:,0,:,:] corresponds to predictions and  slice [:,1,:,:] corresponds to ground truth"""
+    Slice [:,0,:,:] corresponds to predictions and  slice [:,1,:,0] corresponds to ground truth"""
 
 
   with tf.Graph().as_default():
@@ -78,6 +78,8 @@ def eval(data_dir):
     # The model's predictions
 
     logits,prediction = model.inference((fc6_batch,pool_batch,mask_batch),train=False)
+
+    pixel_probabilities = tf.reshape( tf.nn.softmax(tf.reshape(logits, (-1, NUM_CLASSES))) , (-1,416,576,NUM_CLASSES))
     
     # Calculate loss.
     #loss = model.loss(logits, mask_batch,NUM_CLASSES)
@@ -111,21 +113,6 @@ def eval(data_dir):
     saver.restore(sess,FLAGS.checkpoint_path)
 
 
-    # Dice scores for the eval data
-    def ndice(pred_batch,label_batch):
-      n_batch = pred_batch.shape[0]
-      preds = pred_batch.reshape([n_batch,model.PREDICTION_SHAPE[0],model.PREDICTION_SHAPE[1]])
-      labels = label_batch.reshape([n_batch,model.PREDICTION_SHAPE[0],model.PREDICTION_SHAPE[1]])
-      denoms = np.sum(preds,axis=(1,2)) + np.sum(labels,axis=(1,2))
-      cap = np.logical_and(preds, labels)
-      numerators = 2*np.sum(cap, axis=(1,2))
-      zero_denoms = np.where(denoms ==0)
-      nonzero_denoms = np.where (denoms !=0)
-      result = np.empty(denoms.shape)
-      result[zero_denoms] = 1
-      result[nonzero_denoms] = np.divide(numerators[nonzero_denoms],denoms[nonzero_denoms])
-      return result.mean()
-
     
     # Start the queue runners.
     print('Starting queue runners...', end='')
@@ -138,18 +125,21 @@ def eval(data_dir):
     output_records = []
     
     for step in xrange(FLAGS.max_steps):    
-      preds,labels = sess.run([prediction,mask_labels])
+      probabilities,labels = sess.run([pixel_probabilities,mask_labels])
       labels = labels.reshape(labels.shape[:3])
-      #print(labels.shape)
-      output_records.append(np.array([preds,labels]))
+      print(labels.shape)
+      print(probabilities[:,:,:,0].shape)
+      print( np.vstack((probabilities[:,:,:,0],labels)).shape)
+      output_records.append(np.vstack((probabilities[:,:,:,0],labels)))
 
 
       if (step+1) % 4 == 0:
         print('Step {} of evaluation.'.format(step))
         collection = np.array(output_records)
-        shaped_collection = collection.reshape([-1,2,416,576])
+        #print(collection.shape)
+        #shaped_collection = collection.reshape([-1,416,576,2])
         savepath = os.path.join(outpath, 'predictions_chunk_{}'.format((step +1)//4))
-        np.save(savepath,shaped_collection)
+        np.save(savepath,collection)
         output_records=[]
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
@@ -157,9 +147,9 @@ def eval(data_dir):
       if (step + 1) == FLAGS.max_steps:
         print('Finished evaluation.')
         collection = np.array(output_records)
-        shaped_collection = collection.reshape([-1,2,416,576])
+        #shaped_collection = collection.reshape([-1,416,576,2])
         savepath = os.path.join(outpath, 'predictions_chunk_0')
-        np.save(savepath,shaped_collection)
+        np.save(savepath,collection)
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
 
