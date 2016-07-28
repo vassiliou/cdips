@@ -21,10 +21,12 @@ FLAGS = tf.app.flags.FLAGS
 
 ### Constants defining how we run our evaluations
 
-tf.app.flags.DEFINE_integer('batch_size', 10,
+tf.app.flags.DEFINE_integer('batch_size', 4,
                             """Number of records to process in a batch.""")
 
-tf.app.flags.DEFINE_integer('max_steps', 50,
+STEPS_PER_FILE = 2
+
+tf.app.flags.DEFINE_integer('max_steps', 8,
                             """Number of eval batches to run.""")
 NUM_CLASSES = 2
 
@@ -58,7 +60,7 @@ tf.app.flags.DEFINE_boolean('log_device_placement', False,
 #tf.app.flags.DEFINE_string('vgg_path','/Users/gus/CDIPS/uns/fcn_model/vgg16.npy',"""Path to the file containing vgg weights""")
 
 
-def eval(data_dir):
+def eval(data_dir,steps_per_file=STEPS_PER_FILE):
   """Evaluate the model against cross validation dataset.
 
     Saves predictions and masks as an array of shape [# examples] , 2, 416, 576
@@ -119,27 +121,31 @@ def eval(data_dir):
     tf.train.start_queue_runners(sess=sess)
     print('done')
     
-    summary_writer = tf.train.SummaryWriter(FLAGS.out_dir, sess.graph)
+    #summary_writer = tf.train.SummaryWriter(FLAGS.out_dir, sess.graph)
 
 
-   output_records = []
+    output_records = []
     
     for step in xrange(FLAGS.max_steps):    
       probabilities,labels = sess.run([pixel_probabilities,mask_labels])
       labels = labels.reshape(labels.shape[:3])
-      print(labels.shape)
-      print(probabilities[:,:,:,0].shape)
+      #print(labels.shape)
+      #print(probabilities[:,:,:,0].shape)
       to_add = np.array([probabilities[:,:,:,0],labels])
-      print( to_add.shape)
+      #print( to_add.shape)
+
+      ## the following line will take care of the reshaping
+      # shaped = np.reshape(np.transpose(to_add,(0,2,1,3,4)), (-1,2,416,576))
+      ##
       output_records.append(to_add)
 
 
-      if (step+1) % 4 == 0:
+      if (step+1) % steps_per_file  == 0:
         print('Step {} of evaluation.'.format(step))
         collection = np.array(output_records)
         #print(collection.shape)
         #shaped_collection = collection.reshape([-1,416,576,2])
-        savepath = os.path.join(outpath, 'predictions_chunk_{}'.format((step +1)//4))
+        savepath = os.path.join(outpath, 'predictions_chunk_{}'.format((step +1)//steps_per_file) )
 
         ### from the git merge:
         ##np.save(savepath,~shaped_collection.astype(bool))
@@ -161,8 +167,8 @@ def eval(data_dir):
 
 
 def main(argv=None):  # pylint: disable=unused-argument
+    print('Running predicion on .btl files in ' + str(FLAGS.eval_dir))
     eval(FLAGS.eval_dir)
-
 
 if __name__ == '__main__':
   tf.app.run()

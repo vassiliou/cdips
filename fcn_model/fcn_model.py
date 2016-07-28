@@ -35,7 +35,7 @@ def _activation_summary(x):
   Creates a summary that provides a histogram of activations.
   Creates a summary that measure the sparsity of activations.
 
-  Args:
+re  Args:
     x: Tensor
   Returns:
     nothing

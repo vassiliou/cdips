@@ -26,14 +26,13 @@ NUM_CLASSES = 2
 # fcn_input
 #
 
-user = 'g'
+user = 'gus'
 
 if user == 'gus':
-    bottle_files = '/Users/gus/CDIPS/bottleneck_files'
+    bottle_files = '/Users/gus/CDIPS/mask_debug/'
 else:
     bottle_files = '/home/chrisv/code/bottleneck_files'
     
-
 #tf.app.flags.DEFINE_string('train_data_dir', bottle_files,
 #                           """Path to the training input data directory.""")    
 #
