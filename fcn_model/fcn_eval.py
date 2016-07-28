@@ -139,11 +139,7 @@ def eval(data_dir):
         #print(collection.shape)
         #shaped_collection = collection.reshape([-1,416,576,2])
         savepath = os.path.join(outpath, 'predictions_chunk_{}'.format((step +1)//4))
-<<<<<<< HEAD
-        np.save(savepath,~shaped_collection.astype(bool))
-=======
         np.save(savepath,collection)
->>>>>>> 44e8a7c1dbf951af3b410b201505b1a1beee9f54
         output_records=[]
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
@@ -153,11 +149,7 @@ def eval(data_dir):
         collection = np.array(output_records)
         #shaped_collection = collection.reshape([-1,416,576,2])
         savepath = os.path.join(outpath, 'predictions_chunk_0')
-<<<<<<< HEAD
-        np.save(savepath,~shaped_collection.astype(bool))
-=======
         np.save(savepath,collection)
->>>>>>> 44e8a7c1dbf951af3b410b201505b1a1beee9f54
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
 
