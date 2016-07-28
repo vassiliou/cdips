@@ -264,8 +264,11 @@ class image_pair(object):
     def __sub__(self, imgpair):
         return self.image - imgpair.image
         
-    def plot(self):
-        ax = self.image.plot()
+    def plot(self, ax=None):
+        if ax is None:
+            ax = self.image.plot()
+        else:
+            self.image.plot(ax=ax)
         self.mask.plot_contour(ax=ax)
         return ax
         

@@ -58,11 +58,11 @@ if user != 'gus':
     training['train'] = False
     training.loc[train_idx, 'train'] = True
     training['validate'] = False
-    training.loc[validate_idx] = True
+    training.loc[validate_idx, 'validate'] = True
     trainimgs = uns.batch(training.iloc[train_idx])
 
     validimgs = uns.batch(training.iloc[validate_idx])
-    
+    training.to_msgpack('trainvalidate.bin')
     tf.app.flags.DEFINE_integer('num_train_files',len(train_idx) ,
                           """Number of training files in our data directory.""")
     tf.app.flags.DEFINE_integer('num_eval_files',len(validate_idx) ,
@@ -76,7 +76,7 @@ else:
 
 pattern = os.path.join(FLAGS.eval_dir, '*.btl')
 filenames = glob.glob(pattern)
-print(filenames)
+#print(filenames)
      
 # Global constants describing the  data set.
 NUM_CLASSES = 2
@@ -168,9 +168,12 @@ def inputs(data_dir, batch_size,train=True):
   #filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
   #             for i in xrange(1,num_data_files+1)]
   #filenames = glob.glob(pattern)
-  
-  filenames = [os.path.join(bottle_files, f.bottlefile) for f in {True:trainimgs, False:validimgs}[train]]
-  print(len(filenames))
+  if train:
+      batch = trainimgs
+  else:
+      batch = validimgs
+  filenames = [os.path.join(bottle_files, f.bottlefile) for f in batch]
+  print(filenames)
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
@@ -188,7 +191,7 @@ def inputs(data_dir, batch_size,train=True):
   # Subtract off the mean and divide by the variance of the pixels??
  
   # Ensure that the random shuffling has good mixing properties.
-  min_fraction_of_examples_in_queue = 0.3
+  min_fraction_of_examples_in_queue = 0.1
   min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
                            min_fraction_of_examples_in_queue)
 
