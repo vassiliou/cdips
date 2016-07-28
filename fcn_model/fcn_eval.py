@@ -21,10 +21,10 @@ FLAGS = tf.app.flags.FLAGS
 
 ### Constants defining how we run our evaluations
 
-tf.app.flags.DEFINE_integer('batch_size', 1,
+tf.app.flags.DEFINE_integer('batch_size', 10,
                             """Number of records to process in a batch.""")
 
-tf.app.flags.DEFINE_integer('max_steps', 500,
+tf.app.flags.DEFINE_integer('max_steps', 50,
                             """Number of eval batches to run.""")
 NUM_CLASSES = 2
 
@@ -39,7 +39,7 @@ if os.environ['USER'] == 'chrisv':
     print(os.environ['USER'], end='')
     if os.environ['SESSION'] == 'Lubuntu':
         print(" on Lubuntu")        
-        checkpath = '/home/chrisv/code/fcn_train_log/model.ckpt-39999'
+        checkpath = '/home/chrisv/code/fcn_train_log/model.ckpt-10000'
         outpath = '/home/chrisv/code/fcn_train_log/'
     else:
         print(" on Mac")
@@ -149,7 +149,7 @@ def eval(data_dir):
         collection = np.array(output_records)
         shaped_collection = collection.reshape([-1,2,416,576])
         savepath = os.path.join(outpath, 'predictions_chunk_{}'.format((step +1)//4))
-        np.save(savepath,shaped_collection)
+        np.save(savepath,~shaped_collection.astype(bool))
         output_records=[]
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
@@ -159,7 +159,7 @@ def eval(data_dir):
         collection = np.array(output_records)
         shaped_collection = collection.reshape([-1,2,416,576])
         savepath = os.path.join(outpath, 'predictions_chunk_0')
-        np.save(savepath,shaped_collection)
+        np.save(savepath,~shaped_collection.astype(bool))
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
 
