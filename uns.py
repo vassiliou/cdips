@@ -26,8 +26,11 @@ if os.environ['USER'] == 'chrisv':
         for k,v in sorted(os.environ.items()):
             print((k,v))
 
-    
-    
+# Usage: 
+# image_pair(sub_im(subject,image))   
+sub_im = lambda subject, img: pd.Series(data=[subject, img], index=['subject', 'img'])
+
+
 trainfolder = os.path.join(datafolder, 'train')
 testfolder = os.path.join(datafolder, 'test')
 
