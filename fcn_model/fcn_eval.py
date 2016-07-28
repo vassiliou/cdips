@@ -122,15 +122,16 @@ def eval(data_dir):
     summary_writer = tf.train.SummaryWriter(FLAGS.out_dir, sess.graph)
 
 
-    output_records = []
+   output_records = []
     
     for step in xrange(FLAGS.max_steps):    
       probabilities,labels = sess.run([pixel_probabilities,mask_labels])
       labels = labels.reshape(labels.shape[:3])
       print(labels.shape)
       print(probabilities[:,:,:,0].shape)
-      print( np.vstack((probabilities[:,:,:,0],labels)).shape)
-      output_records.append(np.vstack((probabilities[:,:,:,0],labels)))
+      to_add = np.array([probabilities[:,:,:,0],labels])
+      print( to_add.shape)
+      output_records.append(to_add)
 
 
       if (step+1) % 4 == 0:
@@ -139,6 +140,10 @@ def eval(data_dir):
         #print(collection.shape)
         #shaped_collection = collection.reshape([-1,416,576,2])
         savepath = os.path.join(outpath, 'predictions_chunk_{}'.format((step +1)//4))
+
+        ### from the git merge:
+        ##np.save(savepath,~shaped_collection.astype(bool))
+
         np.save(savepath,collection)
         output_records=[]
         print('Saved cross validation set masks and predictions to: ', savepath)  
@@ -149,6 +154,7 @@ def eval(data_dir):
         collection = np.array(output_records)
         #shaped_collection = collection.reshape([-1,416,576,2])
         savepath = os.path.join(outpath, 'predictions_chunk_0')
+
         np.save(savepath,collection)
         print('Saved cross validation set masks and predictions to: ', savepath)  
 
