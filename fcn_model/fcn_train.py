@@ -18,7 +18,7 @@ tf.app.flags.DEFINE_string('train_log_dir', '../../fcn_train_log',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 
-tf.app.flags.DEFINE_integer('batch_size', 1,
+tf.app.flags.DEFINE_integer('batch_size', 10,
                             """Number of records to process in a batch.""")
 
 tf.app.flags.DEFINE_integer('max_steps', 100000,

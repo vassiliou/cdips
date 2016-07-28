@@ -168,6 +168,7 @@ def inputs(data_dir, batch_size,train=True):
   #filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
   #             for i in xrange(1,num_data_files+1)]
   #filenames = glob.glob(pattern)
+<<<<<<< HEAD
   if train:
       batch = trainimgs
   else:
@@ -177,6 +178,20 @@ def inputs(data_dir, batch_size,train=True):
   for f in filenames:
     if not tf.gfile.Exists(f):
       raise ValueError('Failed to find file: ' + f)
+=======
+  
+
+  if user=='gus':
+    pattern = os.path.join(data_dir, '*.btl')
+    filenames = glob.glob(pattern)
+
+  else:
+    filenames = [os.path.join(bottle_files, f.bottlefile) for f in {True:trainimgs, False:validimgs}[train]]
+    print(len(filenames))
+    for f in filenames:
+        if not tf.gfile.Exists(f):
+            raise ValueError('Failed to find file: ' + f)
+>>>>>>> 44e8a7c1dbf951af3b410b201505b1a1beee9f54
 
   #state = np.RandomState(1234)
 
