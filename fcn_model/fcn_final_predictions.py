@@ -22,13 +22,18 @@ FLAGS = tf.app.flags.FLAGS
 
 ### Who's running the script?
 
-user = 'gus'
+user = 'notgus'
 
 ### Enter the directory containing the raw input images, and a target directory where to write the predictions:  
+if user == 'gus':
+    
+    BOTTLE_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_bottles'
+    TARGET_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_output'
 
-BOTTLE_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_bottles'
+else:
+    BOTTLE_DATA_DIRECTORY = '/home/chrisv/code/train_bottles'
+    TARGET_DATA_DIRECTORY = '/home/chrisv/code/train_output'
 
-TARGET_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_output'
 
 ### Choose post-processing hyperparameters:
 
@@ -48,7 +53,7 @@ if os.environ['USER'] == 'chrisv':
     print(os.environ['USER'], end='')
     if os.environ['SESSION'] == 'Lubuntu':
         print(" on Lubuntu")        
-        checkpath = '/home/chrisv/code/fcn_train_log/model.ckpt-10000'
+        checkpath = '/home/chrisv/code/fcn_train_log/BatchOf10/model.ckpt-10000'
         outpath = '/home/chrisv/code/fcn_train_log/'
     else:
         print(" on Mac")
