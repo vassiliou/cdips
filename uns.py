@@ -5,11 +5,18 @@ from skimage import morphology
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 import os
 #import glob
 import pandas as pd
 import numpy as np
+
+
+CM = plt.cm.inferno(np.arange(256))
+alpha =  np.linspace(0, 1, 256)
+CM[:,-1] = alpha
+CM = ListedColormap(CM)
 
 datafolder = "/Users/gus/CDIPS/nerve-project/"
 trainbin = "/Users/gus/CDIPS/uns/training.bin"
@@ -41,6 +48,16 @@ trainfolder = os.path.join(datafolder, 'train')
 testfolder = os.path.join(datafolder, 'test')
 
 training = pd.read_msgpack(trainbin)
+
+def dice(preds, truth):
+    numer = 2*np.sum(np.logical_and(preds, truth))  
+    denom = np.sum(preds) + np.sum(truth)
+    if denom < 1:
+        score = 1  # denom==0 implies numer==0
+    else:
+        score = numer/denom
+    return score
+
 
 class image():
     def __init__(self, row):
@@ -100,6 +117,25 @@ class image():
             ver_range= (pixel[1]-F,pixel[1]+F+1)
             return image[hor_range[0]:hor_range[1],ver_range[0]:ver_range[1]]
 
+class prediction(image):
+    def __init__(self, filename, untrim=2):
+        self.title = ''
+        self.filename = filename        
+        self._image = None
+        self.info = 'Prediction'
+        self.untrim = untrim
+        
+    def load(self):
+        """ Load prediction file and expand by untrim"""
+        pred_image = np.load(self.filename)
+        if self.untrim > 0:
+            u = self.untrim
+            w, h = pred_image.shape
+            pred_array = np.zeros((w+2*u, h+2*u))
+            pred_array[u:-u,u:-u] = pred_image
+            return pred_array
+        else:
+            return pred_image
 
 class mask(image):
     def __init__(self, info):
@@ -258,28 +294,66 @@ class mask(image):
             return None
 
 
+<<<<<<< HEAD
+        
+    
+=======
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 class image_pair(object):
     def __init__(self, row, pred=None):
         self.image = image(row)
         self.mask = mask(row)
-        if pred is None:
-            self.pred = mask(np.zeros((420, 580)))
-        self._score = None
-        self.predfile = self.image.title + '_pred.tif'
+        self.boolmask = self.mask.image.astype(bool)        
+        self.predmasks = {}
+        self.scores = {}
+
         self.bottlefile = self.image.title + '.btl'
+<<<<<<< HEAD
+        if pred is None:            
+            self.predfile = '{}_pred.tif'.format(self.image.title)
+        else:
+            self.predfile = pred.format(self.image.title)
+            self.pred=prediction(self.predfile)
+        
+    
+=======
     def __add__(self, imgpair):
         return self.image + imgpair.image
 
     def __sub__(self, imgpair):
         return self.image - imgpair.image
 
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
     def plot(self, ax=None):
         if ax is None:
             ax = self.image.plot()
         else:
             self.image.plot(ax=ax)
-        self.mask.plot_contour(ax=ax)
+        self.mask.plot_contour(ax=ax, label="Ground truth")
         return ax
+<<<<<<< HEAD
+    
+    def plot_predictions(self):
+        fig, ax = plt.subplots(1,2,figsize=(16,6))
+        self.plot(ax=ax[0])
+        self.pred.plot(ax=ax[1])
+        for k, pred in self.predmasks:
+            pred.plot_contour(ax=ax[0])
+            pred.plot_contour(ax=ax[1], label=k)
+    
+    def plot_heatmap(self):        
+        ax = self.image.plot()
+        self.pred.plot(ax=ax, cmap=CM)
+        self.mask.plot_contour(ax=ax, c='r', label="Ground truth")
+        for k, pred in self.predmasks.items():        
+           pred.plot_contour(ax=ax, label=k)
+            
+    def new_prediction(self, key, maskfun=lambda x:x>0.5):
+        """ Give it a name for referencing and a function to apply to the prediction probablility"""
+        predmask = maskfun(self.pred.image)
+        self.predmasks[key] = mask(predmask*255)
+        self.scores[key] = dice(predmask, self.boolmask)
+=======
 
     @property
     def score(self):
@@ -287,6 +361,7 @@ class image_pair(object):
             X = self.mask.image
             Y = self.pred.image
         return 2 * np.count_nonzero(X == Y) / (np.prod(X.shape) + np.prod(Y.shape))
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 
 
 def plot_pca_comps(P, ncomp, *args, **kwargs):
@@ -296,13 +371,23 @@ def plot_pca_comps(P, ncomp, *args, **kwargs):
             ax = fig.subplot(ncomp-1, ncomp-1, j+i*(ncomp-1))
             ax.scatter(P[:,i], P[:,j], *args, **kwargs)
 
+<<<<<<< HEAD
+            
+=======
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 class batch(list):
-    def __init__(self, rows):
+    def __init__(self, rows, pred=None):
         list.__init__(self, [])
         for row in rows.iterrows():
+<<<<<<< HEAD
+            self.append(image_pair(row[1], pred))
+             
+    @property 
+=======
             self.append(image_pair(row[1]))
 
     @property
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
     def array(self):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
