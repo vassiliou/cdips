@@ -8,21 +8,21 @@ import glob
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import numpy as np
-import uns
 import pandas as pd
 
-#pd.msgpack()
 
 FLAGS = tf.app.flags.FLAGS
 
 # say who's trying to run the script
 
-user = 'g'
+user = 'gus'
+
+using_uns = False
 
 # setup paths to train, validation data directories
 
 if user == 'gus':
-    bottle_files = '/Users/gus/CDIPS/bottleneck_files'
+    bottle_files = '/Users/gus/CDIPS/mask_debug/'
 else:
     bottle_files = '/home/chrisv/code/bottleneck_files'
     
@@ -42,7 +42,7 @@ tf.app.flags.DEFINE_string('eval_dir', bottle_files,
 
 #"""
 
-if user != 'gus':
+if using_uns == True:
 
     import uns
     from uns import training
@@ -67,11 +67,7 @@ if user != 'gus':
                           """Number of training files in our data directory.""")
     tf.app.flags.DEFINE_integer('num_eval_files',len(validate_idx) ,
                           """Number of crossvalidation files in our data directory.""")
-else:
-     tf.app.flags.DEFINE_integer('num_train_files',14 ,
-                          """Number of training files in our data directory.""")
-     tf.app.flags.DEFINE_integer('num_eval_files',14 ,
-                          """Number of crossvalidation in our data directory.""")
+
 
 
 pattern = os.path.join(FLAGS.eval_dir, '*.btl')
@@ -116,7 +112,7 @@ def read_record(filename_queue):
 
 
 def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
-                                    batch_size, shuffle):
+                                    batch_size, shuffle,q_capacity=None):
   """Construct a queued batch of images and labels.
 
   Args:
@@ -132,8 +128,12 @@ def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
   """
   # Create a queue that shuffles the examples, and then
   # read 'batch_size' images + labels from the example queue.
-  num_preprocess_threads = 16
-  if shuffle:
+  if shuffle==True:
+    num_preprocess_threads = 16
+  else:
+    num_preprocess_threads=1
+    
+  if shuffle==True:
     fc6_batch, pool_batch, mask_batch = tf.train.shuffle_batch(
         [fc6, pool, mask],
         batch_size=batch_size,
@@ -145,7 +145,7 @@ def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
         [fc6,pool, mask],
         batch_size=batch_size,
         num_threads=num_preprocess_threads,
-        capacity=min_queue_examples + 3 * batch_size)
+        capacity=q_capacity)
   # Display the masks in the visualizer.
   tf.image_summary('masks', 255*mask_batch[:,:,:,:1])
   # print(images.get_shape())
@@ -169,14 +169,9 @@ def inputs(data_dir, batch_size,train=True):
   #             for i in xrange(1,num_data_files+1)]
   #filenames = glob.glob(pattern)
 
-  if user=='gus':
-    pattern = os.path.join(data_dir, '*.btl')
-    filenames = glob.glob(pattern)
-
-  else:
-    filenames = [os.path.join(bottle_files, f.bottlefile) for f in {True:trainimgs, False:validimgs}[train]]
-    print(len(filenames))
-    for f in filenames:
+  pattern = os.path.join(data_dir, '*.btl')
+  filenames = glob.glob(pattern)
+  for f in filenames:
         if not tf.gfile.Exists(f):
             raise ValueError('Failed to find file: ' + f)
 
@@ -185,8 +180,15 @@ def inputs(data_dir, batch_size,train=True):
   #state.shuffle(filenames)
   
   # Create a queue that produces the filenames to read.
-  filename_queue = tf.train.string_input_producer(filenames,shuffle=train)
 
+
+  if train==True:
+    filename_queue = tf.train.string_input_producer(filenames,shuffle=True)
+    q_capacity == None
+  else:
+    q_capacity = len(filenames)
+    filename_queue = tf.train.string_input_producer(filenames,shuffle=False,capacity=q_capacity)
+        
   # Read examples from files in the filename queue.
   read_input = read_record(filename_queue)
 
@@ -204,5 +206,5 @@ def inputs(data_dir, batch_size,train=True):
   # Generate a batch of images and labels by building up a queue of examples.
   return _generate_bottlenecked_batch(read_input.fc6, read_input.pool,read_input.mask,
                                          min_queue_examples, batch_size,
-                                         shuffle=train)
+                                         shuffle=train,q_capacity=q_capacity)
 

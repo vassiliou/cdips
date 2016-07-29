@@ -18,7 +18,7 @@ tf.app.flags.DEFINE_string('train_log_dir', '../../fcn_train_log',
                            """Directory where to write event logs """
                            """and checkpoint.""")
 
-tf.app.flags.DEFINE_integer('batch_size', 10,
+tf.app.flags.DEFINE_integer('batch_size', 30,
                             """Number of records to process in a batch.""")
 
 tf.app.flags.DEFINE_integer('max_steps', 100000,
@@ -95,13 +95,13 @@ def train():
         print (format_str % (datetime.now(), step, loss_value,
                              examples_per_sec, sec_per_batch))
 
-      if step % 500 == 0:
+      if step % 50 == 0:
         summary_str = sess.run(summary_op)
         summary_writer.add_summary(summary_str, step)
 
       # Save the model checkpoint periodically.
-      if step % 10000 == 0 or (step + 1) == FLAGS.max_steps:
-        checkpoint_path = os.path.join(FLAGS.train_log_dir, 'model.ckpt')
+      if step % 100 == 0 or (step + 1) == FLAGS.max_steps:
+        checkpoint_path = os.path.join(FLAGS.train_log_dir, 'modelfifty.ckpt')
         saver.save(sess, checkpoint_path, global_step=step)
 
 
