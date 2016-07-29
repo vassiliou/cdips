@@ -340,6 +340,8 @@ class image_pair(object):
         self.predmasks[key] = mask(predmask*255)
         self.scores[key] = dice(predmask, self.boolmask)
 
+    def blank_prediction(self):
+        self.scores['blank'] = dice(np.zeros(self.boolmask.shape), self.boolmask)
 
 def plot_pca_comps(P, ncomp, *args, **kwargs):
     fig = plt.figure()
