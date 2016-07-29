@@ -294,11 +294,6 @@ class mask(image):
             return None
 
 
-<<<<<<< HEAD
-        
-    
-=======
->>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 class image_pair(object):
     def __init__(self, row, pred=None):
         self.image = image(row)
@@ -308,7 +303,6 @@ class image_pair(object):
         self.scores = {}
 
         self.bottlefile = self.image.title + '.btl'
-<<<<<<< HEAD
         if pred is None:            
             self.predfile = '{}_pred.tif'.format(self.image.title)
         else:
@@ -316,14 +310,6 @@ class image_pair(object):
             self.pred=prediction(self.predfile)
         
     
-=======
-    def __add__(self, imgpair):
-        return self.image + imgpair.image
-
-    def __sub__(self, imgpair):
-        return self.image - imgpair.image
-
->>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
     def plot(self, ax=None):
         if ax is None:
             ax = self.image.plot()
@@ -331,7 +317,7 @@ class image_pair(object):
             self.image.plot(ax=ax)
         self.mask.plot_contour(ax=ax, label="Ground truth")
         return ax
-<<<<<<< HEAD
+
     
     def plot_predictions(self):
         fig, ax = plt.subplots(1,2,figsize=(16,6))
@@ -353,15 +339,6 @@ class image_pair(object):
         predmask = maskfun(self.pred.image)
         self.predmasks[key] = mask(predmask*255)
         self.scores[key] = dice(predmask, self.boolmask)
-=======
-
-    @property
-    def score(self):
-        if self._score is None:
-            X = self.mask.image
-            Y = self.pred.image
-        return 2 * np.count_nonzero(X == Y) / (np.prod(X.shape) + np.prod(Y.shape))
->>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 
 
 def plot_pca_comps(P, ncomp, *args, **kwargs):
@@ -371,23 +348,13 @@ def plot_pca_comps(P, ncomp, *args, **kwargs):
             ax = fig.subplot(ncomp-1, ncomp-1, j+i*(ncomp-1))
             ax.scatter(P[:,i], P[:,j], *args, **kwargs)
 
-<<<<<<< HEAD
-            
-=======
->>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 class batch(list):
     def __init__(self, rows, pred=None):
         list.__init__(self, [])
         for row in rows.iterrows():
-<<<<<<< HEAD
             self.append(image_pair(row[1], pred))
              
     @property 
-=======
-            self.append(image_pair(row[1]))
-
-    @property
->>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
     def array(self):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
