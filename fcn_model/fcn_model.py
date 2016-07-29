@@ -118,12 +118,10 @@ class bottledFCN16(FCN16VGG):
 
 
 
-def inputs(data_dir,train=True):
+def inputs(data_dir,train=True,fnames=None):
 
     return fcn_input.inputs(data_dir=data_dir,
-                                        batch_size=FLAGS.batch_size,train=train)
-
-
+                                        batch_size=FLAGS.batch_size,train=train,fnames=fnames)
 
 
 def inference(inputs,train=True):

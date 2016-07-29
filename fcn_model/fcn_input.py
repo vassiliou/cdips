@@ -22,7 +22,7 @@ using_uns = False
 # setup paths to train, validation data directories
 
 if user == 'gus':
-    bottle_files = '/Users/gus/CDIPS/mask_debug/'
+    bottle_files = '/Users/gus/CDIPS/test_btl_debug_output/'
 else:
     bottle_files = '/home/chrisv/code/bottleneck_files'
     
@@ -71,7 +71,7 @@ if using_uns == True:
 
 
 pattern = os.path.join(FLAGS.eval_dir, '*.btl')
-filenames = glob.glob(pattern)
+filenames = sorted(glob.glob(pattern))
 #print(filenames)
      
 # Global constants describing the  data set.
@@ -153,24 +153,25 @@ def _generate_bottlenecked_batch(fc6, pool, mask, min_queue_examples,
   return fc6_batch, pool_batch, mask_batch
 
 
-def inputs(data_dir, batch_size,train=True):
+def inputs(data_dir, batch_size,train=True, fnames=None):
   """Construct input for evaluation using the Reader ops.
 
   Args:
-    data_dir : where to look for datafiles
+    data_dir : where to look for datafiles. If None, get list of filenames from optional argument fnames
     batch_size: Number of images per batch.
-
+    fnames: list of filenames.  Gets overridden by contents of data_dir if data_dir is not None
   Returns:
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
     labels: Labels. 1D tensor of [batch_size] size.
   """
-  pattern = os.path.join(data_dir, '*.btl')
-  #filenames = [os.path.join(data_dir, 'fc6pool4mask_batch_%d' % i)
-  #             for i in xrange(1,num_data_files+1)]
-  #filenames = glob.glob(pattern)
 
-  pattern = os.path.join(data_dir, '*.btl')
-  filenames = glob.glob(pattern)
+  if data_dir is None:
+    filenames = fnames
+    
+  else:
+    pattern = os.path.join(data_dir, '*.btl')
+    filenames = sorted(glob.glob(pattern))
+    
   for f in filenames:
         if not tf.gfile.Exists(f):
             raise ValueError('Failed to find file: ' + f)
