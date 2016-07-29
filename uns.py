@@ -23,18 +23,24 @@ trainbin = "/Users/gus/CDIPS/uns/training.bin"
 
 if os.environ['USER'] == 'chrisv':
     print(os.environ['USER'], end='')
-    if os.environ['SESSION'] == 'Lubuntu':
-        print(" on Lubuntu")        
-        datafolder = '/home/chrisv/code'
-        trainbin = '/home/chrisv/code/uns/training.bin'
-        bottlefolder = '/home/chrisv/code/bottleneck_files'
-    else:
-        print(" on Mac")
-        for k,v in sorted(os.environ.items()):
-            print((k,v))
+    try:
+        session =  os.environ['SESSION']
+    except KeyError:
+        session = 'mac'
+    finally:
+        if session == 'Lubuntu':
+            print(" on Lubuntu")
+            datafolder = '/home/chrisv/code'
+            trainbin = '/home/chrisv/code/uns/training.bin'
+            bottlefolder = '/home/chrisv/code/bottleneck_files'
+        else:
+            print(" on Mac")
+            trainbin = '/Users/chrisv/Code/CDIPS/uns/training.bin'
+#            for k,v in sorted(os.environ.items()):
+#                print((k,v))
 
-# Usage: 
-# image_pair(sub_im(subject,image))   
+# Usage:
+# image_pair(sub_im(subject,image))
 sub_im = lambda subject, img: pd.Series(data=[subject, img], index=['subject', 'img'])
 
 
@@ -56,7 +62,7 @@ def dice(preds, truth):
 class image():
     def __init__(self, row):
         if type(row) is np.ndarray:
-            # given an array, assume this is the image 
+            # given an array, assume this is the image
             self._image = row
             self.title = ''
             self.filename = ''
@@ -66,14 +72,14 @@ class image():
             self.title = '{subject}_{img}'.format(subject=row['subject'],
                                                   img=row['img'])
             self.filename = self.title + '.tif'
-    
+
     def __str__(self):
         return self.info.__str__()
-    
+
     def __repr__(self):
         return self.info.__repr__()
-    
-    
+
+
     def load(self):
         """ Load image file """
         return io.imread(os.path.join(trainfolder, self.filename))
@@ -84,7 +90,7 @@ class image():
         else:
             grayscale = self.image
         return np.dstack((grayscale,grayscale,grayscale))
-    
+
     def plot(self, ax=None, **plotargs):
         if ax is None:
             fig, ax = plt.subplots()
@@ -92,20 +98,20 @@ class image():
         ax.imshow(self.image, **plotargs)
         ax.set_title(self.title)
         ax.axis('equal')
-        ax.axis('off')     
-        ax.tick_params(which='both', axis='both', 
+        ax.axis('off')
+        ax.tick_params(which='both', axis='both',
                           bottom=False, top=False, left=False, right=False,
                           labelbottom=False, labeltop=False, labelleft=False, labelright=False)
         ax.autoscale(tight=True)
 
         return ax
-    
+
     @property
     def image(self):
         if self._image is None:
             self._image = self.load()
         return self._image
-    
+
     def get_patch(image,pixel,F):
             hor_range = (pixel[0]-F,pixel[0]+F+1)
             ver_range= (pixel[1]-F,pixel[1]+F+1)
@@ -140,10 +146,10 @@ class mask(image):
         self.filename = self.title + '_mask.tif'
         self._properties = None
         self.hasmask = False
-        
+
     @property
     def contour(self):
-        if self._contour is None: 
+        if self._contour is None:
             contours = measure.find_contours(self.image, 254.5)
             # downsample contour
             if len(contours)>0:
@@ -157,23 +163,23 @@ class mask(image):
             else:
                 self.hasmask = False
         return self._contour
-    
-    @contour.setter 
+
+    @contour.setter
     def contour(self, contour):
         self._contour = contour
 
     def one_hot(self, trim=2):
         if trim>0:
             raw_mask=self.image[trim:-trim,trim:-trim].astype(bool)
-        else: 
+        else:
             raw_mask = self.image.astype(bool)
         return np.dstack((raw_mask, ~raw_mask)).astype(np.float32)
-    
+
     @property
     def properties(self):
         """Return a set of metrics on the masks with units of distance """
         imgH, imgW = self.image.shape  # Image height, width
-        
+
         # Don't overemphasize one dimension over the other by setting the max
         # dimenstion to equal 1
         imgL = np.max([imgH, imgW])
@@ -181,13 +187,13 @@ class mask(image):
         if self._properties is None:
             # Must load contour into single variable before checking self.hasmask
             # If mask exists, only then can we access x,y components of contour
-            C = self.contour  
+            C = self.contour
             if self.hasmask:
-                D = {}                
+                D = {}
                 D['hasmask'] = True
 
-                
-                # Area metric is normalize to number of image pixels.  Sqrt 
+
+                # Area metric is normalize to number of image pixels.  Sqrt
                 # converts units to distance
                 D['maskarea'] = np.sqrt(np.count_nonzero(self.image)/imgA)
                 # Contour-derived values
@@ -196,69 +202,69 @@ class mask(image):
                 D['contxmax'] = np.max(x)/imgL
                 D['contymin'] = np.min(y)/imgL
                 D['contymax'] = np.max(y)/imgL
-    
-                D['contW'] = D['contxmax'] - D['contxmin']     
+
+                D['contW'] = D['contxmax'] - D['contxmin']
                 D['contH'] = D['contymax'] - D['contymin']
-                
+
                 # Image moments
                 m = measure.moments(self.image, order=5)
                 D['moments'] = m
                 D['centrow'] = (m[0, 1]/m[0, 0])/imgL
                 D['centcol'] = (m[1, 0]/m[0, 0])/imgL
-                
+
                 # Hu, scale, location, rotation invariant (7, 1)
-                mHu = measure.moments_hu(m)    
+                mHu = measure.moments_hu(m)
                 for i, Ii in enumerate(mHu):
                     D['moment_hu_I{}'.format(i)] = Ii
-                    
+
                 # Contour SVD is converted to two coordinates
                 # First normalize and centre the contours
                 D['contour'] = self.contour
-                
-                contour = (self.contour.T/imgL - [D['centrow'], D['centcol']]).T 
+
+                contour = (self.contour.T/imgL - [D['centrow'], D['centcol']]).T
                 D['unitcontour'] = contour
 
                 _, s, v = np.linalg.svd(contour.T)
 
-                D['svd'] = s*v                
-                D['svdx0'] = D['svd'][0,0] 
+                D['svd'] = s*v
+                D['svdx0'] = D['svd'][0,0]
                 D['svdx1'] = D['svd'][0,1]
                 D['svdy0'] = D['svd'][1,0]
-                D['svdy1'] = D['svd'][1,1]              
-                
+                D['svdy1'] = D['svd'][1,1]
+
                 # Width by medial axis
                 skel, distance = morphology.medial_axis(self.image,
                                                         self.image,
                                                         return_distance=True)
                 self.skel = skel
                 self.distance = distance
-                
-                # 
+
+                #
                 D['skelpixels'] = np.sqrt((np.sum(skel)/imgA))  # number of pixels
-                
+
                 # distances should be restricted to within mask to avoid over-
-                # counting the zeros outside the mask                
+                # counting the zeros outside the mask
                 distances = distance[self.image>0]/imgL
-                q = [10, 25, 50, 75, 90] 
+                q = [10, 25, 50, 75, 90]
                 keys = ['skeldist{:2d}'.format(n) for n in q]
                 vals = np.percentile(distances, q)
                 D.update(dict(zip(keys, vals)))
                 D['skelavgdist'] = np.mean(distances)
                 D['skelmaxdist'] = np.max(distances)
-                
+
                 self._properties = D
         return self._properties
 
     @property
-    def pandas(self):                
+    def pandas(self):
         df = self.info[['subject','img','pixels']]
         df.loc['hasmask'] = False
-        props = self.properties        
+        props = self.properties
         if props is not None:
             for k, v in props.items():
                 df.loc[k] = v
         return df
-        
+
     @property
     def RLE(self):
         """Convert mask to run length encoded format"""
@@ -267,10 +273,10 @@ class mask(image):
         stop = np.nonzero(dm<0)[0]
         RLE = np.vstack((start+2, stop-start))
         return ' '.join(str(n) for n in RLE.flatten(order='F'))
-        
-    
+
+
     def plot_contour(self, *args, **kwargs):
-        C = self.contour      
+        C = self.contour
         if self.hasmask:
             x = C[1,:]
             y = C[0,:]
@@ -279,7 +285,7 @@ class mask(image):
                 fig, ax = plt.subplots()
             ax.plot(x,y, *args, **kwargs)
             ax.axis('equal')
-            ax.tick_params(which='both', axis='both', 
+            ax.tick_params(which='both', axis='both',
                               bottom=False, top=False, left=False, right=False,
                               labelbottom=False, labeltop=False, labelleft=False, labelright=False)
             ax.autoscale(tight=True)
@@ -288,8 +294,11 @@ class mask(image):
             return None
 
 
+<<<<<<< HEAD
         
     
+=======
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 class image_pair(object):
     def __init__(self, row, pred=None):
         self.image = image(row)
@@ -299,6 +308,7 @@ class image_pair(object):
         self.scores = {}
 
         self.bottlefile = self.image.title + '.btl'
+<<<<<<< HEAD
         if pred is None:            
             self.predfile = '{}_pred.tif'.format(self.image.title)
         else:
@@ -306,6 +316,14 @@ class image_pair(object):
             self.pred=prediction(self.predfile)
         
     
+=======
+    def __add__(self, imgpair):
+        return self.image + imgpair.image
+
+    def __sub__(self, imgpair):
+        return self.image - imgpair.image
+
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
     def plot(self, ax=None):
         if ax is None:
             ax = self.image.plot()
@@ -313,6 +331,7 @@ class image_pair(object):
             self.image.plot(ax=ax)
         self.mask.plot_contour(ax=ax, label="Ground truth")
         return ax
+<<<<<<< HEAD
     
     def plot_predictions(self):
         fig, ax = plt.subplots(1,2,figsize=(16,6))
@@ -334,44 +353,62 @@ class image_pair(object):
         predmask = maskfun(self.pred.image)
         self.predmasks[key] = mask(predmask*255)
         self.scores[key] = dice(predmask, self.boolmask)
+=======
+
+    @property
+    def score(self):
+        if self._score is None:
+            X = self.mask.image
+            Y = self.pred.image
+        return 2 * np.count_nonzero(X == Y) / (np.prod(X.shape) + np.prod(Y.shape))
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 
 
 def plot_pca_comps(P, ncomp, *args, **kwargs):
     fig = plt.figure()
-    for i in np.arange(ncomp):        
+    for i in np.arange(ncomp):
         for j in np.arange(i, ncomp):
             ax = fig.subplot(ncomp-1, ncomp-1, j+i*(ncomp-1))
             ax.scatter(P[:,i], P[:,j], *args, **kwargs)
 
+<<<<<<< HEAD
             
+=======
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
 class batch(list):
     def __init__(self, rows, pred=None):
         list.__init__(self, [])
         for row in rows.iterrows():
+<<<<<<< HEAD
             self.append(image_pair(row[1], pred))
              
     @property 
+=======
+            self.append(image_pair(row[1]))
+
+    @property
+>>>>>>> 289b5ad655051d0830a43f5c484805df48b18fe9
     def array(self):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
         return np.array([im.image.image for im in self])
-    
+
     def array_masks(self, trim=2):
         """Load masks from the batch into a 4-D ndarray"""
         entries=[]
         for impair in self:
             entries.append(impair.mask.one_hot(trim=trim))
         return np.array(entries).astype(np.float32)
-    
+
     def array_rgb(self, trim=2):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
         return np.array([im.image.load_rgb(trim=trim) for im in self])
-   
+
     def plot_grid(self, ncols=5, plotimage=True, plotcontour=True, plotpred=False, figwidth=16):
         """Plot a grid of images, optionally overlaying contours and predicted contours
-            Assumes the input is a Pandas DataFrame as in training.bin    
-        """    
+            Assumes the input is a Pandas DataFrame as in training.bin
+        """
         nrows=int(np.ceil(len(self)/ncols))
         figheight = figwidth/ncols*nrows
         fig = plt.figure(figsize=(figwidth,figheight))
@@ -385,25 +422,25 @@ class batch(list):
                 imgpair.pred.plot_contour('-r', ax=ax)
 
         return ax
-    
-         
+
+
     def plot_hist(self, ax=None):
         """Plot histograms of a set of images
-            Assumes the input is a Pandas DataFrame as in training.bin    
-        """    
+            Assumes the input is a Pandas DataFrame as in training.bin
+        """
         if ax is None:
             fig, ax = plt.subplots()
         for imgpair in self:
             ax.hist(imgpair.image.image.flatten(), cumulative=True, normed=True,
                     bins=100, histtype='step', label=imgpair.image.filename, alpha=0.1, color='k')
         return ax
-    
+
     def scores(self):
         scores = [imgpair.score for imgpair in self]
         return scores
 
 if __name__ == '__main__':
-        
+
     # Load image pair from training table
     img = image_pair(training.iloc[0])
 
@@ -411,32 +448,32 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(1,2)
     img.image.plot(ax=ax[0])
     img.mask.plot(ax=ax[1])
-    
+
     #plot image pair to overlay contour
     img.plot()
-    
+
     #create/plot batch of images
     imgbatch = batch(training.iloc[0:6])
     imgbatch.plot_grid()
-    
+
     #use batch.array to get a NumPy array of all images in a batch
     #Call image with a 2-D NumPy array to get access to plotting etc.
     imgsum = image(np.sum(imgbatch.array,axis=0))
-    imgsum.plot(cmap=plt.cm.viridis)    
-    
+    imgsum.plot(cmap=plt.cm.viridis)
+
     # histograms of batch of images?
     imgbatch.plot_hist()
     plt.show()
-    
+
     print(img.mask.properties)
     print(img.mask.pandas)
-    
+
     # Check that properties are called/set correctly
     img = image_pair(training.iloc[1])
-    print(img.mask.pandas)    
-    
+    print(img.mask.pandas)
+
     # Use batch.pop() to process images sequentially
-    
+
 #    import psutil
 #    process = psutil.Process(os.getpid())
 #    # Memory usage
@@ -455,8 +492,8 @@ if __name__ == '__main__':
 #            print('{:d}, images: {:d}'.format(i,process.memory_info().rss))
 #    savebatch = batch(training.iloc[0:50])
 #    for i, img in enumerate(savebatch):
-#        data = img.image.image        
+#        data = img.image.image
 #        if i%10 == 0:
 #            print('{:d}, images: {:d}'.format(i,process.memory_info().rss))
-#    
+#
 #    print(len(newbatch), len(savebatch))
