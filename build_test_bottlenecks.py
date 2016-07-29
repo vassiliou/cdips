@@ -17,14 +17,16 @@ from skimage import io
 
 ## Who is running the script?
 
-user='gus'
+user='not_gus'
 
 ### Enter the directory containing the raw input images, and a target directory where to write the predictions:  
-
-SOURCE_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_source'
-
-BOTTLE_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_bottles'
-
+if user == 'gus':
+    SOURCE_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_source'
+    BOTTLE_DATA_DIRECTORY = '/Users/gus/CDIPS/test_debug_bottles'
+else:
+    SOURCE_DATA_DIRECTORY = '/home/chrisv/code/train'
+    BOTTLE_DATA_DIRECTORY = '/home/chrisv/code/train_bottles'
+    
 ### Enter path to initial VGG16 weights vgg16.npy
 
 vgg_path = '../vgg16.npy'
