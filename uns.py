@@ -36,6 +36,7 @@ if os.environ['USER'] == 'chrisv':
         else:
             print(" on Mac")
             trainbin = '/Users/chrisv/Code/CDIPS/uns/training.bin'
+            datafolder = "/Users/chrisv/Code/CDIPS"
 #            for k,v in sorted(os.environ.items()):
 #                print((k,v))
 
@@ -50,7 +51,7 @@ testfolder = os.path.join(datafolder, 'test')
 training = pd.read_msgpack(trainbin)
 
 def dice(preds, truth):
-    numer = 2*np.sum(np.logical_and(preds, truth))  
+    numer = 2*np.sum(np.logical_and(preds, truth))
     denom = np.sum(preds) + np.sum(truth)
     if denom < 1:
         score = 1  # denom==0 implies numer==0
@@ -120,11 +121,12 @@ class image():
 class prediction(image):
     def __init__(self, filename, untrim=2):
         self.title = ''
-        self.filename = filename        
+        self.filename = filename
         self._image = None
         self.info = 'Prediction'
         self.untrim = untrim
-        
+        self.predmasks = {}
+
     def load(self):
         """ Load prediction file and expand by untrim"""
         pred_image = np.load(self.filename)
@@ -136,6 +138,25 @@ class prediction(image):
             return pred_array
         else:
             return pred_image
+
+    def new_prediction(self, key, maskfun=lambda x:x>0.5):
+        """ Give it a name for referencing and a function to apply to the prediction probablility"""
+        predmask = maskfun(self.image)
+        self.predmasks[key] = mask(predmask*255)
+        #self.scores[key] = dice(predmask, self.boolmask)
+
+    def blank_prediction(self):
+        self.scores['blank'] = dice(np.zeros(self.boolmask.shape), self.boolmask)
+
+    def heatmap(self, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots()
+            colormap = plt.cm.inferno
+        else:
+            colormap = CM
+        self.plot(ax=ax, vmin=0, vmax=1.0, cmap=colormap)
+        for k, pred in self.predmasks.items():
+           pred.plot_contour(ax=ax, label=k)
 
 class mask(image):
     def __init__(self, info):
@@ -295,53 +316,45 @@ class mask(image):
 
 
 class image_pair(object):
-    def __init__(self, row, pred=None):
+    def __init__(self, row=None, pred=None):
         self.image = image(row)
         self.mask = mask(row)
-        self.boolmask = self.mask.image.astype(bool)        
+        self.boolmask = self.mask.image.astype(bool)
         self.predmasks = {}
         self.scores = {}
 
         self.bottlefile = self.image.title + '.btl'
-        if pred is None:            
+        if pred is None:
             self.predfile = '{}_pred.tif'.format(self.image.title)
         else:
             self.predfile = pred.format(self.image.title)
             self.pred=prediction(self.predfile)
-        
-    
+
+
     def plot(self, ax=None):
         if ax is None:
             ax = self.image.plot()
         else:
             self.image.plot(ax=ax)
-        self.mask.plot_contour(ax=ax, label="Ground truth")
+        self.mask.plot_contour(ax=ax, c='r', lw=2.0, label="Ground truth")
         return ax
 
-    
+
     def plot_predictions(self):
         fig, ax = plt.subplots(1,2,figsize=(16,6))
         self.plot(ax=ax[0])
-        self.pred.plot(ax=ax[1])
-        for k, pred in self.predmasks:
-            pred.plot_contour(ax=ax[0])
-            pred.plot_contour(ax=ax[1], label=k)
-    
-    def plot_heatmap(self):        
-        ax = self.image.plot()
-        self.pred.plot(ax=ax, cmap=CM)
-        self.mask.plot_contour(ax=ax, c='r', label="Ground truth")
-        for k, pred in self.predmasks.items():        
-           pred.plot_contour(ax=ax, label=k)
-            
-    def new_prediction(self, key, maskfun=lambda x:x>0.5):
-        """ Give it a name for referencing and a function to apply to the prediction probablility"""
-        predmask = maskfun(self.pred.image)
-        self.predmasks[key] = mask(predmask*255)
-        self.scores[key] = dice(predmask, self.boolmask)
+        self.pred.plot(ax=ax[1], vmin=0, vmax=1.0, cmap=plt.cm.inferno)
+        for k, pred in self.predmasks.items():
+            pred.plot_contour(ax=ax[0], lw=2.0)
+#            pred.plot_contour(ax=ax[1], label=k)
 
-    def blank_prediction(self):
-        self.scores['blank'] = dice(np.zeros(self.boolmask.shape), self.boolmask)
+    def plot_heatmap(self):
+        ax = self.image.plot()
+        self.pred.plot(ax=ax, vmin=0, vmax=1.0, cmap=CM)
+        self.mask.plot_contour(ax=ax, c='r', label="Ground truth")
+        for k, pred in self.predmasks.items():
+           pred.plot_contour(ax=ax, label=k)
+
 
 def plot_pca_comps(P, ncomp, *args, **kwargs):
     fig = plt.figure()
@@ -355,8 +368,8 @@ class batch(list):
         list.__init__(self, [])
         for row in rows.iterrows():
             self.append(image_pair(row[1], pred))
-             
-    @property 
+
+    @property
     def array(self):
         """ Load a series of images and return as a 3-D numpy array.
         imageset consists of rows from training.bin"""
